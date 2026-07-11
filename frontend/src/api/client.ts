@@ -71,6 +71,36 @@ export async function getPlayerTournaments(pin: number) {
   return res.data;
 }
 
+export interface PlayerGame {
+  id: string;
+  date: string;
+  round: number;
+  result: string;
+  handicap: number;
+  player1: { pin: number; firstName: string; lastName: string };
+  player2: { pin: number; firstName: string; lastName: string };
+  color1: string;
+  color2: string;
+  tournament: { code: string; description: string };
+}
+
+export interface GamesResponse {
+  data: PlayerGame[];
+  total: number;
+  currentPage: number;
+  hasMorePages: boolean;
+}
+
+export async function getPlayerGames(
+  pin: number,
+  limit: number = 200
+): Promise<GamesResponse> {
+  const res = await api.get<GamesResponse>(`/player/${pin}/games`, {
+    params: { limit },
+  });
+  return res.data;
+}
+
 export async function sendChatMessage(
   message: string,
   context?: string,

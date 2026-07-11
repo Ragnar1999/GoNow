@@ -167,8 +167,8 @@ class EGDClient:
         query = """
         query GetPlayerGames($pin: Int!, $page: Int!, $limit: Int!) {
           games(
-            filter: { playerPin: $pin }
-            order: { field: DATE, direction: DESC }
+            filter: { pinPlayer: $pin }
+            order: { field: date, direction: DESC }
             pagination: { page: $page, limit: $limit }
           ) {
             data {
@@ -184,6 +184,8 @@ class EGDClient:
               }
               player1 { pin firstName lastName }
               player2 { pin firstName lastName }
+              color1
+              color2
             }
             total
             currentPage

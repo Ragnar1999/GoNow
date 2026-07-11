@@ -1,9 +1,12 @@
 import { useNavigate } from 'react-router-dom';
 import { useFavorites } from '../hooks/useFavorites';
+import { useState } from 'react';
+import FavoritesVisualizer from '../components/FavoritesVisualizer';
 
 export default function FavoritesPage() {
   const { favorites, removeFavorite } = useFavorites();
   const navigate = useNavigate();
+  const [showVisualizer, setShowVisualizer] = useState(false);
 
   if (favorites.length === 0) {
     return (
@@ -25,6 +28,17 @@ export default function FavoritesPage() {
     <div style={styles.container}>
       <h1 style={styles.title}>Favorite Players</h1>
       <p style={styles.count}>{favorites.length} player{favorites.length !== 1 ? 's' : ''} tracked</p>
+      
+      {/* Visualize button if we have at least 2 favorites */}
+      {favorites.length >= 2 && (
+        <button
+          onClick={() => setShowVisualizer(!showVisualizer)}
+          style={styles.visualizeBtn}
+        >
+          {showVisualizer ? 'Hide Showdown' : '🎉 Visualize Favorites Showdown!'}
+        </button>
+      )}
+
       <div style={styles.grid}>
         {favorites.map(player => {
           const isDan = player.grade.toLowerCase().includes('d') && !player.grade.toLowerCase().includes('k');
@@ -58,6 +72,11 @@ export default function FavoritesPage() {
           );
         })}
       </div>
+
+      {/* Visualizer section */}
+      {showVisualizer && favorites.length >= 2 && (
+        <FavoritesVisualizer players={favorites} />
+      )}
     </div>
   );
 }
@@ -65,7 +84,20 @@ export default function FavoritesPage() {
 const styles: Record<string, React.CSSProperties> = {
   container: { maxWidth: 920, margin: '0 auto', padding: '20px 16px' },
   title: { fontSize: 26, fontWeight: 800, color: 'var(--slate)', marginBottom: 4 },
-  count: { color: 'var(--text-light)', fontSize: 13, marginBottom: 24 },
+  count: { color: 'var(--text-light)', fontSize: 13, marginBottom: 16 },
+  visualizeBtn: {
+    background: 'linear-gradient(135deg, var(--wood-dark), #5a4a32)',
+    color: '#fff',
+    border: 'none',
+    borderRadius: 12,
+    padding: '12px 28px',
+    cursor: 'pointer',
+    fontSize: 15,
+    fontWeight: 700,
+    marginBottom: 24,
+    boxShadow: '0 4px 12px rgba(90, 74, 50, 0.3)',
+    transition: 'transform 0.1s ease',
+  },
   empty: { textAlign: 'center', padding: '60px 20px' },
   emptyStone: { fontSize: 56, color: 'var(--border)', marginBottom: 16 },
   emptyTitle: { fontSize: 20, fontWeight: 600, color: 'var(--slate)', marginBottom: 8 },
