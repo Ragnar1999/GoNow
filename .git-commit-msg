@@ -1,0 +1,9 @@
+feat: refine rating chart with gradient fill, peak reference line, and a11y
+
+- Convert LineChart to ComposedChart with gradient area fill
+- Add peak rating reference line (green dashed)
+- Enhanced tooltip with delta rating and city display
+- Add accessibilityLayer, role=img, aria-label for a11y
+- Optimize chartData and peakRating with useMemo
+- Improve axis styling (hide vertical grid, remove tick lines)
+- Add smooth chart animation (800ms ease-out)
