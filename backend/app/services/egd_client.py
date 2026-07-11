@@ -221,6 +221,87 @@ class EGDClient:
                 })
         return tournaments
 
+    async def get_tournament(self, code: str) -> dict:
+        """Get tournament details by code."""
+        query = """
+        query GetTournament($code: String!) {
+          tournament(code: $code) {
+            code
+            reliability
+            description
+            categoriesDescription
+            date
+            city
+            nation
+            tournamentClass
+            rounds
+            totalPlayers
+            status
+            placements {
+              data {
+                id
+                placement
+                gradeDeclared
+                wonGames
+                lostGames
+                jigoGames
+                precedentRating
+                followingRating
+                player {
+                  pin
+                  firstName
+                  lastName
+                  countryCode
+                  grade
+                  rating
+                }
+              }
+            }
+            games {
+              data {
+                id
+                date
+                round
+                result
+                handicap
+                player1 { pin firstName lastName }
+                player2 { pin firstName lastName }
+              }
+            }
+          }
+        }
+        """
+        result = await self._query(query, {"code": code})
+        return result["data"]["tournament"]
+
+    async def search_tournaments(self, search: str, limit: int = 20) -> dict:
+        """Search tournaments by name/code."""
+        query = """
+        query SearchTournaments($search: String!, $limit: Int!) {
+          tournaments(
+            filter: { search: $search }
+            order: { field: DATE, direction: DESC }
+            pagination: { page: 1, limit: $limit }
+          ) {
+            data {
+              code
+              description
+              date
+              city
+              nation
+              tournamentClass
+              totalPlayers
+              status
+            }
+            total
+            currentPage
+            hasMorePages
+          }
+        }
+        """
+        result = await self._query(query, {"search": search, "limit": limit})
+        return result["data"]["tournaments"]
+
     async def get_player_by_name_or_pin(self, search: str) -> dict | None:
         """Search by PIN if numeric, otherwise by name."""
         if search.isdigit():

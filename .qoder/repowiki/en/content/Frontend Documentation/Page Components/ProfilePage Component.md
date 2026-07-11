@@ -11,6 +11,14 @@
 - [index.css](file://frontend/src/index.css)
 </cite>
 
+## Update Summary
+**Changes Made**
+- Updated React Hooks compliance section to reflect useMemo hooks moved before early returns
+- Enhanced chart visualization documentation with ComposedChart features including gradient area fill and peak rating reference line
+- Added accessibility improvements documentation covering accessibilityLayer, role='img', and aria-label attributes
+- Updated error handling section with authentication guidance for EGD API token configuration
+- Revised performance considerations to include memoization benefits
+
 ## Table of Contents
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
@@ -23,7 +31,7 @@
 9. [Conclusion](#conclusion)
 
 ## Introduction
-This document provides comprehensive documentation for the ProfilePage component, which displays a Go player’s profile including biographical information, rating evolution charts using Recharts, tournament history, and game statistics. It explains data fetching patterns from the backend to the frontend, chart implementation details, responsive design considerations, error handling, loading states, and user interactions such as favoriting players and navigating between views.
+This document provides comprehensive documentation for the ProfilePage component, which displays a Go player's profile including biographical information, rating evolution charts using Recharts, tournament history, and game statistics. It explains data fetching patterns from the backend to the frontend, chart implementation details, responsive design considerations, error handling, loading states, and user interactions such as favoriting players and navigating between views.
 
 ## Project Structure
 The ProfilePage is part of a React + TypeScript frontend that consumes a FastAPI backend. The backend integrates with an external GraphQL API (EGD) to retrieve player data.
@@ -126,29 +134,29 @@ PP-->>U : Render header, stats, chart, table
 The component performs these steps:
 - Extracts route parameter pin and navigational utilities.
 - Fetches player data using React Query with a cache key based on pin.
+- **Updated** Computes chart data and peak rating using useMemo hooks positioned before early returns to comply with React Hooks rules.
 - Renders loading spinner during initial fetch.
-- On error or missing data, shows an error view with a “Back to Search” button.
-- Computes chart data from rating_history, filters entries with valid ratings, maps fields, and calculates peak rating.
+- On error or missing data, shows an error view with a "Back to Search" button and authentication guidance when applicable.
 - Determines if the player is a Dan grade and whether a photo URL exists.
 - Renders header with photo or stone badge, name, metadata, and favorite toggle.
 - Displays stat cards for grade, rating, change, proposed grade, tournaments, and EGF rank.
-- Renders rating evolution chart when data is present.
+- Renders rating evolution chart when data is present with enhanced accessibility features.
 - Renders tournament history table with computed deltas and color-coded changes.
 
 ```mermaid
 flowchart TD
 Start(["Component Mount"]) --> GetPin["Extract 'pin' from route params"]
-GetPin --> FetchPlayer["useQuery('player', pin) -> getPlayer(pin)"]
+GetPin --> ComputeMemo["Compute chartData & peakRating with useMemo<br/>(before early returns)"]
+ComputeMemo --> FetchPlayer["useQuery('player', pin) -> getPlayer(pin)"]
 FetchPlayer --> Loading{"isLoading?"}
 Loading --> |Yes| ShowLoading["Render spinner and message"]
 Loading --> |No| CheckError{"isError || !player?"}
-CheckError --> |Yes| ShowError["Render error with back button"]
-CheckError --> |No| BuildChart["Build chartData from rating_history<br/>Compute peakRating"]
-BuildChart --> DetermineGrade["Check Dan grade and photoUrl"]
+CheckError --> |Yes| ShowError["Render error with back button<br/>and authentication guidance"]
+CheckError --> |No| DetermineGrade["Check Dan grade and photoUrl"]
 DetermineGrade --> RenderHeader["Render header with photo/badge, name, meta, fav button"]
 RenderHeader --> RenderStats["Render stat cards"]
 RenderStats --> HasChartData{"chartData.length > 0?"}
-HasChartData --> |Yes| RenderChart["Render ComposedChart with Area + Line"]
+HasChartData --> |Yes| RenderChart["Render ComposedChart with Area + Line<br/>with accessibility features"]
 HasChartData --> |No| SkipChart["Skip chart section"]
 RenderChart --> RenderTable["Render tournament history table"]
 SkipChart --> RenderTable
@@ -157,9 +165,9 @@ RenderTable --> End(["UI Ready"])
 
 **Diagram sources**
 - [ProfilePage.tsx:11-20](file://frontend/src/pages/ProfilePage.tsx#L11-L20)
-- [ProfilePage.tsx:22-42](file://frontend/src/pages/ProfilePage.tsx#L22-L42)
-- [ProfilePage.tsx:44-67](file://frontend/src/pages/ProfilePage.tsx#L44-L67)
-- [ProfilePage.tsx:69-239](file://frontend/src/pages/ProfilePage.tsx#L69-L239)
+- [ProfilePage.tsx:26-46](file://frontend/src/pages/ProfilePage.tsx#L26-46)
+- [ProfilePage.tsx:48-76](file://frontend/src/pages/ProfilePage.tsx#L48-L76)
+- [ProfilePage.tsx:78-239](file://frontend/src/pages/ProfilePage.tsx#L78-L239)
 
 **Section sources**
 - [ProfilePage.tsx:11-239](file://frontend/src/pages/ProfilePage.tsx#L11-L239)
@@ -214,7 +222,9 @@ BE-->>FE : { ...player, rating_history }
   - activeDot highlights hovered points.
   - Tooltip computes delta from ratingBefore and rating.
 - Accessibility:
-  - role="img" and aria-label provide context for screen readers.
+  - **Updated** accessibilityLayer prop enables screen reader support.
+  - role="img" provides semantic meaning for assistive technologies.
+  - aria-label describes chart content dynamically based on player data.
 
 ```mermaid
 classDiagram
@@ -246,14 +256,14 @@ StatCard <.. ProfilePage : "used by"
 ```
 
 **Diagram sources**
-- [ProfilePage.tsx:241-251](file://frontend/src/pages/ProfilePage.tsx#L241-L251)
-- [ProfilePage.tsx:253-274](file://frontend/src/pages/ProfilePage.tsx#L253-L274)
-- [ProfilePage.tsx:276-285](file://frontend/src/pages/ProfilePage.tsx#L276-L285)
+- [ProfilePage.tsx:254-264](file://frontend/src/pages/ProfilePage.tsx#L254-L264)
+- [ProfilePage.tsx:266-287](file://frontend/src/pages/ProfilePage.tsx#L266-L287)
+- [ProfilePage.tsx:289-298](file://frontend/src/pages/ProfilePage.tsx#L289-L298)
 
 **Section sources**
-- [ProfilePage.tsx:44-67](file://frontend/src/pages/ProfilePage.tsx#L44-L67)
-- [ProfilePage.tsx:111-186](file://frontend/src/pages/ProfilePage.tsx#L111-L186)
-- [ProfilePage.tsx:253-274](file://frontend/src/pages/ProfilePage.tsx#L253-L274)
+- [ProfilePage.tsx:26-46](file://frontend/src/pages/ProfilePage.tsx#L26-46)
+- [ProfilePage.tsx:123-199](file://frontend/src/pages/ProfilePage.tsx#L123-L199)
+- [ProfilePage.tsx:266-287](file://frontend/src/pages/ProfilePage.tsx#L266-L287)
 
 ### Tournament History Table
 - Displays date, tournament name with optional city, grade, rating with delta, placement, and wins/losses.
@@ -273,10 +283,10 @@ RenderRow --> TEnd(["Table Complete"])
 ```
 
 **Diagram sources**
-- [ProfilePage.tsx:189-236](file://frontend/src/pages/ProfilePage.tsx#L189-L236)
+- [ProfilePage.tsx:201-249](file://frontend/src/pages/ProfilePage.tsx#L201-L249)
 
 **Section sources**
-- [ProfilePage.tsx:189-236](file://frontend/src/pages/ProfilePage.tsx#L189-L236)
+- [ProfilePage.tsx:201-249](file://frontend/src/pages/ProfilePage.tsx#L201-L249)
 
 ### Biographical Information and Header
 - Photo display: If biography.photo exists, show image; otherwise render a stone badge representing grade.
@@ -297,21 +307,21 @@ PP-->>PP : Update UI (button state, badge/photo)
 ```
 
 **Diagram sources**
-- [ProfilePage.tsx:65-97](file://frontend/src/pages/ProfilePage.tsx#L65-L97)
+- [ProfilePage.tsx:78-110](file://frontend/src/pages/ProfilePage.tsx#L78-L110)
 - [useFavorites.ts:6-48](file://frontend/src/hooks/useFavorites.ts#L6-L48)
 
 **Section sources**
-- [ProfilePage.tsx:65-97](file://frontend/src/pages/ProfilePage.tsx#L65-L97)
+- [ProfilePage.tsx:78-110](file://frontend/src/pages/ProfilePage.tsx#L78-L110)
 - [useFavorites.ts:6-48](file://frontend/src/hooks/useFavorites.ts#L6-L48)
 
 ### Navigation and User Interaction Patterns
 - Back navigation: Button triggers navigate(-1) to return to previous page.
-- Error recovery: “Back to Search” button navigates to root search page.
+- Error recovery: "Back to Search" button navigates to root search page.
 - Favorites: Toggle adds/removes player from favorites and persists to localStorage.
 
 **Section sources**
-- [ProfilePage.tsx:22-42](file://frontend/src/pages/ProfilePage.tsx#L22-L42)
-- [ProfilePage.tsx:73-96](file://frontend/src/pages/ProfilePage.tsx#L73-L96)
+- [ProfilePage.tsx:48-76](file://frontend/src/pages/ProfilePage.tsx#L48-L76)
+- [ProfilePage.tsx:86-109](file://frontend/src/pages/ProfilePage.tsx#L86-L109)
 - [useFavorites.ts:20-45](file://frontend/src/hooks/useFavorites.ts#L20-L45)
 
 ### Responsive Design Considerations
@@ -322,9 +332,9 @@ PP-->>PP : Update UI (button state, badge/photo)
 - CSS variables define consistent theming and colors.
 
 **Section sources**
-- [ProfilePage.tsx:100-108](file://frontend/src/pages/ProfilePage.tsx#L100-L108)
-- [ProfilePage.tsx:114-173](file://frontend/src/pages/ProfilePage.tsx#L114-L173)
-- [ProfilePage.tsx:361-364](file://frontend/src/pages/ProfilePage.tsx#L361-L364)
+- [ProfilePage.tsx:83-121](file://frontend/src/pages/ProfilePage.tsx#L83-L121)
+- [ProfilePage.tsx:127-199](file://frontend/src/pages/ProfilePage.tsx#L127-L199)
+- [ProfilePage.tsx:300-388](file://frontend/src/pages/ProfilePage.tsx#L300-L388)
 - [index.css:33-38](file://frontend/src/index.css#L33-L38)
 
 ## Dependency Analysis
@@ -361,20 +371,28 @@ PP --> CSS["index.css"]
   - React Query caches player data by query key, reducing redundant network requests.
   - Backend EGD client implements in-memory caching with TTL to minimize external API calls.
 - Memoization:
-  - useMemo used to compute chartData and peakRating, avoiding unnecessary recalculations.
+  - **Updated** useMemo used to compute chartData and peakRating, positioned before early returns to comply with React Hooks rules and avoid unnecessary recalculations.
 - Rendering efficiency:
   - Conditional rendering of chart and table sections prevents unnecessary work when data is absent.
 - Responsiveness:
   - ResponsiveContainer adapts chart dimensions to container size without manual recalculation.
+- Accessibility:
+  - **New** accessibilityLayer prop improves screen reader compatibility without performance overhead.
 
-[No sources needed since this section provides general guidance]
+**Section sources**
+- [ProfilePage.tsx:26-46](file://frontend/src/pages/ProfilePage.tsx#L26-46)
+- [ProfilePage.tsx:129-184](file://frontend/src/pages/ProfilePage.tsx#L129-L184)
 
 ## Troubleshooting Guide
 Common issues and resolutions:
 - Missing player data:
-  - Symptom: Error view displayed with “Failed to load player data.”
+  - Symptom: Error view displayed with "Failed to load player data."
   - Cause: Network error or 404 from backend.
-  - Resolution: Verify PIN validity and backend availability; use “Back to Search” to retry.
+  - Resolution: Verify PIN validity and backend availability; use "Back to Search" to retry.
+- **Updated** Authentication errors:
+  - Symptom: Error message includes "authentication" or "token" keywords.
+  - Cause: Invalid or missing EGD API token in backend configuration.
+  - Resolution: Check EGD API token in `backend/.env` file and ensure it's properly configured.
 - Empty rating history:
   - Symptom: No chart rendered.
   - Cause: No entries with rating_after.
@@ -389,9 +407,9 @@ Common issues and resolutions:
   - Resolution: Clear storage and re-add favorites; handle parse errors gracefully.
 
 **Section sources**
-- [ProfilePage.tsx:33-42](file://frontend/src/pages/ProfilePage.tsx#L33-L42)
-- [ProfilePage.tsx:44-58](file://frontend/src/pages/ProfilePage.tsx#L44-L58)
+- [ProfilePage.tsx:59-76](file://frontend/src/pages/ProfilePage.tsx#L59-L76)
+- [ProfilePage.tsx:201-249](file://frontend/src/pages/ProfilePage.tsx#L201-L249)
 - [useFavorites.ts:7-18](file://frontend/src/hooks/useFavorites.ts#L7-L18)
 
 ## Conclusion
-The ProfilePage component effectively presents a player’s profile with robust data fetching, interactive charts, and clear user interactions. It leverages React Query for efficient caching, Recharts for rich visualizations, and a well-structured backend pipeline to transform external GraphQL data into a usable format. Error handling and loading states ensure a resilient user experience, while responsive design and accessibility features enhance usability across devices.
+The ProfilePage component effectively presents a player's profile with robust data fetching, interactive charts, and clear user interactions. It leverages React Query for efficient caching, Recharts for rich visualizations, and a well-structured backend pipeline to transform external GraphQL data into a usable format. Recent improvements include enhanced React Hooks compliance with proper useMemo positioning, advanced chart visualization with gradient fills and peak rating indicators, comprehensive accessibility features for better screen reader support, and improved error handling with authentication guidance. Error handling and loading states ensure a resilient user experience, while responsive design and accessibility features enhance usability across devices.

@@ -96,6 +96,44 @@ EGD_TOOLS = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "search_tournaments",
+            "description": "Search for Go tournaments by name/code in the European Go Database. Returns list of matching tournaments with details.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "Tournament name or code (partial match supported)",
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Max number of tournaments to return (default 20)",
+                    }
+                },
+                "required": ["query"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_tournament_details",
+            "description": "Get full details of a tournament by its code, including placements, games, and participating players.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "code": {
+                        "type": "string",
+                        "description": "Tournament unique code from EGD",
+                    }
+                },
+                "required": ["code"],
+            },
+        },
+    },
 ]
 
 
@@ -181,6 +219,20 @@ async def execute_tool(name: str, arguments: dict) -> dict:
                 return {"success": False, "error": f"Player with PIN {pin1} not found"}
             if not p2:
                 return {"success": False, "error": f"Player with PIN {pin2} not found"}
+            
+            # Fetch head-to-head games
+            head_to_head = []
+            # Get all games for both players and find matches between them
+            try:
+                p1_games = await egd_client.get_player_games(pin1, limit=200)
+                for game in p1_games.get("data", []):
+                    p1_pin = game["player1"]["pin"]
+                    p2_pin = game["player2"]["pin"]
+                    if (p1_pin == pin1 and p2_pin == pin2) or (p1_pin == pin2 and p2_pin == pin1):
+                        head_to_head.append(game)
+            except Exception:
+                pass
+
             return {
                 "success": True,
                 "data": {
@@ -202,8 +254,23 @@ async def execute_tool(name: str, arguments: dict) -> dict:
                         "deltaRating": p2.get("deltaRating"),
                         "totalTournaments": p2.get("totalTournaments"),
                     },
+                    "head_to_head": head_to_head,
                 },
             }
+
+        elif name == "search_tournaments":
+            query = arguments["query"]
+            limit = arguments.get("limit", 20)
+            result = await egd_client.search_tournaments(query, limit=min(limit, 50))
+            return {"success": True, "data": result}
+
+        elif name == "get_tournament_details":
+            code = arguments["code"]
+            tournament = await egd_client.get_tournament(code)
+            if not tournament:
+                return {"success": False, "error": f"Tournament with code {code} not found"}
+            return {"success": True, "data": tournament}
+
         else:
             return {"success": False, "error": f"Unknown tool: {name}"}
 

@@ -9,6 +9,13 @@
 - [EGD_API.md](file://docs/EGD_API.md)
 </cite>
 
+## Update Summary
+**Changes Made**
+- Updated error handling section to document new EGD exception types (EGDAuthError, EGDAPIError)
+- Added comprehensive HTTP status code mapping for authentication and API errors
+- Enhanced error response examples with specific status codes (401, 502)
+- Updated integration patterns to reflect improved exception handling architecture
+
 ## Table of Contents
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
@@ -54,7 +61,7 @@ EGDClient --> EGDGraphQL
 
 ## Core Components
 - Players Router: Defines REST endpoints for searching players, retrieving player details, games, and tournaments.
-- EGD Client: Encapsulates GraphQL queries, authentication, and response parsing; includes an in-memory cache with TTL.
+- EGD Client: Encapsulates GraphQL queries, authentication, and response parsing; includes an in-memory cache with TTL and comprehensive error handling.
 - Pydantic Models: Define structured types for player summaries, placements, and search responses.
 
 Key responsibilities:
@@ -62,14 +69,15 @@ Key responsibilities:
 - Implement intelligent search prioritizing PIN lookups over name searches.
 - Transform raw placement data into a flat rating_history list suitable for charting.
 - Provide pagination for games via query parameters.
+- Handle EGD-specific exceptions with appropriate HTTP status codes.
 
 **Section sources**
-- [players.py:8-106](file://backend/app/routers/players.py#L8-L106)
-- [egd_client.py:11-197](file://backend/app/services/egd_client.py#L11-L197)
+- [players.py:8-129](file://backend/app/routers/players.py#L8-L129)
+- [egd_client.py:11-242](file://backend/app/services/egd_client.py#L11-L242)
 - [player.py:6-60](file://backend/app/models/player.py#L6-L60)
 
 ## Architecture Overview
-The Players Router integrates with the EGD GraphQL API through the EGD client. Requests flow from the FastAPI router to the client, which executes GraphQL queries and returns normalized results. Responses are standardized across endpoints to include consistent pagination fields where applicable.
+The Players Router integrates with the EGD GraphQL API through the EGD client. Requests flow from the FastAPI router to the client, which executes GraphQL queries and returns normalized results. Responses are standardized across endpoints to include consistent pagination fields where applicable. The system implements robust error handling with specific HTTP status codes for different failure scenarios.
 
 ```mermaid
 sequenceDiagram
@@ -82,15 +90,23 @@ Router->>Router : Validate q (min_length=1)<br/>If numeric -> PIN lookup
 alt Numeric input
 Router->>ClientSvc : get_player_by_pin(pin)
 ClientSvc->>EGD : POST GraphQL query(player)
-EGD-->>ClientSvc : Player object
+EGD-->>ClientSvc : Player object or Error
+alt Authentication Error
+ClientSvc-->>Router : EGDAuthError
+Router-->>Client : 401 Unauthorized
+else API Error
+ClientSvc-->>Router : EGDAPIError
+Router-->>Client : 502 Bad Gateway
+else Success
 ClientSvc-->>Router : Player dict
 Router-->>Client : {data : [PlayerSummary], total, currentPage, hasMorePages}
+end
 else Name search
 Router->>ClientSvc : search_players(q)
 ClientSvc->>EGD : POST GraphQL query(playersSearch)
-EGD-->>ClientSvc : PlayerPagination
-ClientSvc-->>Router : PlayerPagination
-Router-->>Client : PlayerPagination
+EGD-->>ClientSvc : PlayerPagination or Error
+ClientSvc-->>Router : PlayerPagination or Exception
+Router-->>Client : Response or Error
 end
 ```
 
@@ -126,13 +142,16 @@ Example successful response (PIN lookup):
 - currentPage: 1
 - hasMorePages: false
 
-Error scenarios:
+**Updated** Enhanced error handling with specific HTTP status codes:
 - Missing or empty q: Validation error (min_length=1)
-- External service errors: 500 Internal Server Error with detail message
+- Authentication failures: 401 Unauthorized with detailed message
+- External API errors: 502 Bad Gateway with error details
+- Internal server errors: 500 Internal Server Error
 
 Integration notes:
 - Uses egd_client.get_player_by_pin(int(q)) when q.isdigit()
 - Falls back to egd_client.search_players(q) otherwise
+- Comprehensive exception handling for EGD-specific errors
 
 **Section sources**
 - [players.py:8-40](file://backend/app/routers/players.py#L8-L40)
@@ -150,9 +169,12 @@ Integration notes:
 - Response Schema:
   - All fields from the player object plus:
     - rating_history: array of objects with date, tournament, city, nation, placement, grade, rating_before, rating_after, won, lost, jigo
-- Error scenarios:
-  - Player not found: 404 Not Found
-  - External service errors: 500 Internal Server Error
+
+**Updated** Enhanced error handling:
+- Player not found: 404 Not Found
+- Authentication failures: 401 Unauthorized with token validation message
+- External API errors: 502 Bad Gateway with error details
+- Internal server errors: 500 Internal Server Error
 
 Rating history transformation:
 - Extracts placements.data entries
@@ -179,15 +201,18 @@ Rating history transformation:
     - total: integer
     - currentPage: integer
     - hasMorePages: boolean
-- Error scenarios:
-  - External service errors: 500 Internal Server Error
+
+**Updated** Enhanced error handling:
+- Authentication failures: 401 Unauthorized with token validation message
+- External API errors: 502 Bad Gateway with error details
+- Internal server errors: 500 Internal Server Error
 
 Pagination support:
 - Enforced by query parameter validators (ge, le)
 - Passed directly to EGD client for server-side pagination
 
 **Section sources**
-- [players.py:83-94](file://backend/app/routers/players.py#L83-L94)
+- [players.py:83-94](file://backend/app/routers/players.py#L83-94)
 - [egd_client.py:120-150](file://backend/app/services/egd_client.py#L120-L150)
 
 #### Get Player Tournaments
@@ -202,8 +227,11 @@ Pagination support:
 - Response Schema:
   - data: array of TournamentInfo-like objects with fields such as code, description, date, city, nation, placement, grade_declared, won, lost, jigo, rating_before, rating_after
   - total: integer count of tournaments
-- Error scenarios:
-  - External service errors: 500 Internal Server Error
+
+**Updated** Enhanced error handling:
+- Authentication failures: 401 Unauthorized with token validation message
+- External API errors: 502 Bad Gateway with error details
+- Internal server errors: 500 Internal Server Error
 
 **Section sources**
 - [players.py:97-106](file://backend/app/routers/players.py#L97-L106)
@@ -279,7 +307,7 @@ GamesEndpoint --> EGDClient : "delegates"
 ```
 
 **Diagram sources**
-- [players.py:83-94](file://backend/app/routers/players.py#L83-L94)
+- [players.py:83-94](file://backend/app/routers/players.py#L83-94)
 - [egd_client.py:120-150](file://backend/app/services/egd_client.py#L120-L150)
 
 ### Request/Response Schemas
@@ -349,33 +377,60 @@ GamesEndpoint --> EGDClient : "delegates"
 - [player.py:55-60](file://backend/app/models/player.py#L55-L60)
 
 ### Error Handling
-- Validation Errors:
+**Updated** Comprehensive error handling with specific HTTP status codes:
+
+- **Validation Errors**:
   - Missing or invalid query/path parameters return standard FastAPI validation errors (e.g., min_length, ge, le constraints).
-- Not Found:
+
+- **Authentication Failures (401)**:
+  - Invalid or expired EGD API tokens
+  - Missing authorization headers
+  - Token permission issues
+  - Returns: `{"detail": "EGD API authentication failed. Please check your API token."}`
+
+- **External API Errors (502)**:
+  - EGD API service unavailable
+  - GraphQL query errors
+  - Network connectivity issues
+  - Returns: `{"detail": "EGD API error: [specific error message]"}`
+
+- **Not Found (404)**:
   - GET /api/player/{pin} returns 404 if the player does not exist.
-- Server Errors:
-  - Unhandled exceptions in routers raise 500 Internal Server Error with a detail message.
-- External Service Errors:
-  - EGD client raises ValueError on GraphQL errors; routers catch and convert to 500 responses.
+
+- **Internal Server Errors (500)**:
+  - Unhandled exceptions in routers
+  - Unexpected data processing errors
+  - Returns: `{"detail": "[exception message]"}`
+
+**Exception Types**:
+- `EGDAuthError`: Raised when EGD API authentication fails (status codes 401, 403, or redirect to login)
+- `EGDAPIError`: Raised for general EGD API errors including network issues and GraphQL errors
 
 **Section sources**
-- [players.py:39-40](file://backend/app/routers/players.py#L39-L40)
-- [players.py:48-50](file://backend/app/routers/players.py#L48-L50)
-- [players.py:77-80](file://backend/app/routers/players.py#L77-L80)
-- [players.py:93-94](file://backend/app/routers/players.py#L93-L94)
-- [players.py:105-106](file://backend/app/routers/players.py#L105-L106)
-- [egd_client.py:38-42](file://backend/app/services/egd_client.py#L38-L42)
+- [players.py:33-50](file://backend/app/routers/players.py#L33-L50)
+- [players.py:87-94](file://backend/app/routers/players.py#L87-L94)
+- [players.py:107-112](file://backend/app/routers/players.py#L107-L112)
+- [players.py:123-128](file://backend/app/routers/players.py#L123-L128)
+- [egd_client.py:11-18](file://backend/app/services/egd_client.py#L11-L18)
+- [egd_client.py:47-71](file://backend/app/services/egd_client.py#L47-L71)
 
 ### Integration Patterns with EGD Client
-- Authentication:
+- **Authentication**:
   - Bearer token provided via environment variable EGD_API_TOKEN.
-- Caching:
+  - Automatic detection of authentication failures with proper error propagation.
+
+- **Caching**:
   - In-memory cache keyed by query and variables with a TTL of 300 seconds.
-- GraphQL Queries:
+
+- **GraphQL Queries**:
   - search_players: uses playersSearch with pagination.
   - get_player_by_pin: fetches player including placements and biography.
   - get_player_games: filters games by playerPin with ordering and pagination.
   - get_player_tournaments: derives unique tournaments from placements.
+
+- **Error Propagation**:
+  - EGD-specific exceptions are caught and converted to appropriate HTTP status codes.
+  - Authentication errors (401) vs API errors (502) are clearly distinguished.
 
 **Section sources**
 - [egd_client.py:11-20](file://backend/app/services/egd_client.py#L11-L20)
@@ -394,12 +449,15 @@ PlayersRouter["routers/players.py"] --> EGDClient["services/egd_client.py"]
 EGDClient --> HTTPX["httpx.AsyncClient"]
 PlayersRouter --> FastAPI["FastAPI Router"]
 FastAPI --> MainApp["app.main.app"]
+EGDClient --> EGDAuthError["EGDAuthError Exception"]
+EGDClient --> EGDAPIError["EGDAPIError Exception"]
 ```
 
 **Diagram sources**
 - [players.py:1-5](file://backend/app/routers/players.py#L1-L5)
 - [egd_client.py:1-10](file://backend/app/services/egd_client.py#L1-L10)
 - [main.py:29-31](file://backend/app/main.py#L29-L31)
+- [egd_client.py:11-18](file://backend/app/services/egd_client.py#L11-L18)
 
 **Section sources**
 - [players.py:1-5](file://backend/app/routers/players.py#L1-L5)
@@ -415,28 +473,35 @@ FastAPI --> MainApp["app.main.app"]
   - Rating history and tournaments are sorted server-side or client-side to minimize frontend processing.
 - Network Timeouts:
   - HTTP client timeout is set to 30 seconds to prevent hanging requests.
-
-[No sources needed since this section provides general guidance]
+- Error Handling:
+  - Efficient exception handling prevents unnecessary retries and reduces server load during failures.
 
 ## Troubleshooting Guide
 Common issues and resolutions:
-- Validation Errors:
+- **Validation Errors**:
   - Ensure q meets min_length=1 for search.
   - Ensure page >= 1 and limit within [1, 200] for games.
-- Not Found:
+
+- **Authentication Issues (401)**:
+  - Verify EGD_API_TOKEN is valid and properly configured in backend/.env
+  - Check token permissions and expiration status
+  - Ensure Authorization header format is correct: `Bearer <token>`
+
+- **External API Errors (502)**:
+  - Check EGD API service availability
+  - Verify network connectivity to europeangodatabase.eu
+  - Inspect GraphQL errors returned by EGD client for specific error messages
+
+- **Not Found (404)**:
   - Verify the PIN exists in the EGD database.
-- External Service Errors:
-  - Check EGD_API_TOKEN validity and scope.
-  - Inspect GraphQL errors returned by EGD client.
-- Caching Issues:
+
+- **Caching Issues**:
   - Clear in-memory cache by restarting the service if stale data is observed.
 
 **Section sources**
 - [players.py:8-40](file://backend/app/routers/players.py#L8-L40)
-- [players.py:83-94](file://backend/app/routers/players.py#L83-L94)
+- [players.py:83-94](file://backend/app/routers/players.py#L83-94)
 - [egd_client.py:38-42](file://backend/app/services/egd_client.py#L38-L42)
 
 ## Conclusion
-The Players Router provides a robust interface for searching and retrieving player data from the EGD. It implements intelligent search prioritization, structured response schemas, and efficient pagination. The EGD client encapsulates GraphQL interactions and caching, ensuring reliable and performant access to external data.
-
-[No sources needed since this section summarizes without analyzing specific files]
+The Players Router provides a robust interface for searching and retrieving player data from the EGD. It implements intelligent search prioritization, structured response schemas, efficient pagination, and comprehensive error handling with specific HTTP status codes. The enhanced exception handling system distinguishes between authentication failures (401) and API errors (502), providing clear feedback to clients. The EGD client encapsulates GraphQL interactions and caching, ensuring reliable and performant access to external data while maintaining proper error propagation throughout the application stack.

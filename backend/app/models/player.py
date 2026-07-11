@@ -36,6 +36,12 @@ class PlacementInfo(BaseModel):
     tournament: Optional[TournamentInfo] = None
 
 
+class Biography(BaseModel):
+    type: str
+    biography: Optional[str] = None
+    photo: Optional[str] = None
+
+
 class PlayerDetail(BaseModel):
     pin: int
     firstName: str
@@ -50,6 +56,7 @@ class PlayerDetail(BaseModel):
     lastAppearance: Optional[str] = None
     egfPlacement: Optional[int] = None
     placements: Optional[list[PlacementInfo]] = None
+    biography: Optional[Biography] = None
 
 
 class SearchResponse(BaseModel):

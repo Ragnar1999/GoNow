@@ -26,6 +26,56 @@ Rating context:
 
 Always try to provide insights about player progress, trends, and comparisons."""
 
+SUMMARIZATION_SYSTEM_PROMPT = """You are a summarizer assistant. Your only job is to take
+the provided conversation, which may include tool use and raw data, and summarize it into
+a clear, concise, friendly answer for a Go (board game) enthusiast. Focus on the key insights,
+remove technical jargon, make it easy to understand, and keep the tone friendly and helpful.
+Use bullet points or tables where appropriate for clarity."""
+
+
+async def summarize_conversation(
+    messages: list[dict],
+    api_key: str,
+) -> str:
+    """
+    Summarize the conversation using a dedicated summarization step
+    """
+    async with httpx.AsyncClient(timeout=60) as client:
+        # Prepare summarization prompt
+        summary_messages = [
+            {"role": "system", "content": SUMMARIZATION_SYSTEM_PROMPT}
+        ]
+        # Add the conversation history (without tool call IDs, just content)
+        for msg in messages[1:]:  # Skip initial system prompt
+            if msg.get("role") == "tool":
+                continue  # Skip raw tool results
+            summary_messages.append({
+                "role": msg.get("role"),
+                "content": msg.get("content", ""),
+            })
+        
+        # Add a final instruction to summarize
+        summary_messages.append({
+            "role": "user",
+            "content": "Please summarize the above conversation, including all key findings from any tool use, into a concise, friendly answer for the user."
+        })
+        
+        resp = await client.post(
+            OPENROUTER_URL,
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": MODEL,
+                "messages": summary_messages,
+                "max_tokens": 1000,
+            },
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        return data["choices"][0]["message"].get("content", "")
+
 
 async def agent_chat(
     message: str,
@@ -37,6 +87,7 @@ async def agent_chat(
     1. Send user message + tools to OpenRouter
     2. If LLM calls tools, execute them and feed results back
     3. Loop until LLM produces a final text response (max MAX_ITERATIONS)
+    4. Summarize the conversation with a dedicated summarization step
     Returns {"reply": str, "model": str, "tool_calls": list[str]}
     """
     api_key = os.environ.get("OPENROUTER_API_KEY", "")
@@ -63,6 +114,7 @@ async def agent_chat(
     messages.append({"role": "user", "content": message})
 
     tool_calls_log = []
+    final_model = MODEL
 
     async with httpx.AsyncClient(timeout=60) as client:
         for iteration in range(MAX_ITERATIONS):
@@ -81,7 +133,7 @@ async def agent_chat(
             )
             resp.raise_for_status()
             data = resp.json()
-            model = data.get("model", MODEL)
+            final_model = data.get("model", MODEL)
 
             choice = data["choices"][0]
             assistant_msg = choice["message"]
@@ -117,37 +169,43 @@ async def agent_chat(
                 # Continue loop to let LLM process tool results
                 continue
             else:
-                # No tool calls - LLM produced final answer
-                reply = assistant_msg.get("content", "")
-                return {
-                    "reply": reply,
-                    "model": model,
-                    "tool_calls": tool_calls_log,
-                }
+                # No tool calls - LLM produced initial answer, now summarize
+                messages.append({
+                    "role": "assistant",
+                    "content": assistant_msg.get("content", ""),
+                })
+                break
 
-        # If we exhausted iterations, get final text from last message
-        # Make one more call without tools to force a text response
-        messages.append({
-            "role": "user",
-            "content": "Please summarize your findings and provide a final answer to the user.",
-        })
-        resp = await client.post(
-            OPENROUTER_URL,
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "model": MODEL,
-                "messages": messages,
-                "max_tokens": 1000,
-            },
-        )
-        resp.raise_for_status()
-        data = resp.json()
-        reply = data["choices"][0]["message"].get("content", "")
+        # If we exhausted iterations, make one more call without tools to get a text response
+        if len(tool_calls_log) > 0 and len(messages) == 3 + (2 * MAX_ITERATIONS):
+            messages.append({
+                "role": "user",
+                "content": "Please summarize your findings and provide a final answer to the user.",
+            })
+            resp = await client.post(
+                OPENROUTER_URL,
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": MODEL,
+                    "messages": messages,
+                    "max_tokens": 1000,
+                },
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            final_model = data.get("model", MODEL)
+            messages.append({
+                "role": "assistant",
+                "content": data["choices"][0]["message"].get("content", ""),
+            })
+
+        # Now run the summarization step
+        summary = await summarize_conversation(messages, api_key)
         return {
-            "reply": reply,
-            "model": data.get("model", MODEL),
+            "reply": summary,
+            "model": final_model,
             "tool_calls": tool_calls_log,
         }

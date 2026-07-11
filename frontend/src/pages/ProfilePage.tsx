@@ -77,7 +77,12 @@ export default function ProfilePage() {
 
   const fav = isFavorite(player.pin);
   const isDan = player.grade.toLowerCase().includes('d') && !player.grade.toLowerCase().includes('k');
-  const photoUrl = player.biography?.photo;
+  // Format photo URL: if it doesn't start with http, assume it's a filename in EGD's photos directory
+  const photoUrl = player.biography?.photo 
+    ? (player.biography.photo.startsWith('http') 
+      ? player.biography.photo 
+      : `https://europeangodatabase.eu/EGD/Photos/${player.biography.photo}`)
+    : undefined;
 
   return (
     <div className="go-grid-bg" style={styles.container}>
@@ -119,6 +124,16 @@ export default function ProfilePage() {
         <StatCard label="Tournaments" value={player.totalTournaments?.toString() ?? 'N/A'} />
         <StatCard label="EGF Rank" value={player.egfPlacement?.toString() ?? 'N/A'} />
       </div>
+
+      {/* Biography */}
+      {player.biography?.biography && (
+        <div style={styles.section}>
+          <h2 style={styles.sectionTitle}>About</h2>
+          <div style={styles.biographyCard}>
+            <p style={styles.biographyText}>{player.biography.biography}</p>
+          </div>
+        </div>
+      )}
 
       {/* Rating Evolution Chart */}
       {chartData.length > 0 && (
@@ -384,4 +399,17 @@ const styles: Record<string, React.CSSProperties> = {
   tr: { borderBottom: '1px solid #f5f0e6' },
   trAlt: { borderBottom: '1px solid #f5f0e6', background: '#fdfbf6' },
   td: { padding: '9px 14px', color: 'var(--text)' },
+  biographyCard: {
+    background: 'var(--card-bg)',
+    borderRadius: 14,
+    padding: '18px 16px',
+    boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+    border: '1px solid var(--border)',
+  },
+  biographyText: {
+    margin: 0,
+    fontSize: 14,
+    color: 'var(--text)',
+    lineHeight: 1.7,
+  },
 };

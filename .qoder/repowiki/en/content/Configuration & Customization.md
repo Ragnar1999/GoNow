@@ -14,6 +14,12 @@
 - [Makefile](file://Makefile)
 </cite>
 
+## Update Summary
+**Changes Made**
+- Updated CORS configuration section to document support for multiple development environments (localhost:5174, localhost:5175)
+- Enhanced troubleshooting guide with specific guidance for multi-instance development scenarios
+- Added detailed explanation of development environment flexibility and best practices
+
 ## Table of Contents
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
@@ -209,14 +215,32 @@ Operational implications:
 - [chat_agent.py:1-154](file://backend/app/services/chat_agent.py#L1-L154)
 - [README.md:139-167](file://README.md#L139-L167)
 
-### API Client and CORS
-- Frontend API client points to http://localhost:8000/api during development.
-- Backend allows specific origins for CORS in development.
+### API Client and CORS Configuration
 
-Production adjustments:
-- Update baseURL to your deployed backend domain.
-- Restrict allow_origins to your production domain(s).
-- Consider adding CSRF protection and rate limiting as needed.
+**Updated** Enhanced CORS configuration now supports multiple development environments to enable concurrent frontend instances during development.
+
+#### CORS Origins Configuration
+The backend CORS middleware is configured to allow multiple development origins:
+- **Primary development**: `http://localhost:5173` (default Vite dev server)
+- **Additional development instances**: `http://localhost:5174`, `http://localhost:5175` (for running multiple frontend instances)
+- **Alternative development**: `http://localhost:3000` (for Create React App or other frameworks)
+
+#### Multi-Instance Development Support
+The expanded CORS configuration enables developers to:
+- Run multiple frontend instances simultaneously during development
+- Test different versions or branches concurrently
+- Develop separate micro-frontends or companion applications
+- Avoid cross-origin request blocking issues when switching between development environments
+
+#### Production CORS Configuration
+For production deployments, restrict CORS origins to your actual domain(s):
+```python
+allow_origins=["https://yourdomain.com", "https://www.yourdomain.com"]
+```
+
+#### Frontend API Client Configuration
+- Development: Points to `http://localhost:8000/api`
+- Production: Update baseURL to your deployed backend domain
 
 **Section sources**
 - [client.ts:1-86](file://frontend/src/api/client.ts#L1-L86)
@@ -278,6 +302,9 @@ BE --> EGD["EGD API"]
 [No sources needed since this section provides general guidance]
 
 ## Troubleshooting Guide
+
+**Updated** Enhanced troubleshooting guidance for multi-instance development scenarios.
+
 Common issues and resolutions:
 - Chat disabled:
   - Symptom: Chat replies indicate it is not configured.
@@ -288,9 +315,15 @@ Common issues and resolutions:
 - Too many iterations:
   - Reduce CHAT_MAX_ITERATIONS to cap tool-calling loops.
 - CORS errors in development:
-  - Ensure frontend origin matches backend allow_origins list.
+  - **Multi-instance development**: Ensure your frontend instance port matches one of the allowed origins (5173, 5174, 5175, 3000).
+  - **Single instance**: Verify frontend origin matches backend allow_origins list.
+  - **Production**: Check that your domain is properly configured in CORS settings.
 - API connectivity:
   - Verify EGD_API_TOKEN validity and network access to external APIs.
+- Multiple frontend instances conflicts:
+  - Each frontend instance should run on a different port (5173, 5174, 5175).
+  - All instances can connect to the same backend instance due to expanded CORS configuration.
+  - Use browser developer tools to verify CORS headers are being sent correctly.
 
 **Section sources**
 - [chat_agent.py:42-48](file://backend/app/services/chat_agent.py#L42-L48)
@@ -302,3 +335,6 @@ You can fully configure and customize the application by:
 - Tailoring the frontend build and theme through Vite and CSS variables.
 - Applying feature toggles and performance parameters to fit your operational needs.
 - Following security best practices for secrets and CORS in production.
+- Leveraging enhanced CORS configuration for flexible multi-instance development workflows.
+
+The updated CORS configuration provides greater flexibility for development environments, allowing teams to run multiple frontend instances concurrently while maintaining security boundaries in production deployments.
