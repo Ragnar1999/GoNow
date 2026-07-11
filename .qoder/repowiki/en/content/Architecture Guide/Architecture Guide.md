@@ -13,36 +13,34 @@
 - [App.tsx](file://frontend/src/App.tsx)
 - [ChatWidget.tsx](file://frontend/src/components/ChatWidget.tsx)
 - [client.ts](file://frontend/src/api/client.ts)
-- [SearchPage.tsx](file://frontend/src/pages/SearchPage.tsx)
-- [ProfilePage.tsx](file://frontend/src/pages/ProfilePage.tsx)
-- [useFavorites.ts](file://frontend/src/hooks/useFavorites.ts)
 </cite>
 
 ## Update Summary
 **Changes Made**
-- Updated project structure to reflect new React frontend and FastAPI backend architecture
-- Added comprehensive documentation for AI chat assistant with agentic tool calling capabilities
-- Documented EGD (European Go Database) integration layer with GraphQL API client
-- Added React component architecture with state management and data visualization
-- Updated architectural diagrams to show full-stack interactions including external APIs
-- Enhanced cross-cutting concerns documentation for modern web application patterns
+- Updated agentic chat architecture documentation with comprehensive ReAct pattern implementation details
+- Added detailed OpenRouter tool calling system with five core EGD tools for Go analytics
+- Enhanced EGD GraphQL API integration layer with caching strategy and error handling
+- Documented complete backend/frontend component responsibilities and data flow patterns
+- Added new architectural diagrams showing agentic workflow and tool execution cycles
+- Updated cross-cutting concerns documentation for AI-powered features and external service integrations
 
 ## Table of Contents
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
 3. [Core Components](#core-components)
 4. [Architecture Overview](#architecture-overview)
-5. [Detailed Component Analysis](#detailed-component-analysis)
-6. [AI Chat Assistant Architecture](#ai-chat-assistant-architecture)
-7. [EGD Integration Layer](#egd-integration-layer)
-8. [React Frontend Architecture](#react-frontend-architecture)
-9. [Dependency Analysis](#dependency-analysis)
+5. [Agentic Chat System Architecture](#agentic-chat-system-architecture)
+6. [EGD Integration Layer](#egd-integration-layer)
+7. [React Frontend Architecture](#react-frontend-architecture)
+8. [Tool Calling System](#tool-calling-system)
+9. [Data Flow Patterns](#data-flow-patterns)
 10. [Performance Considerations](#performance-considerations)
-11. [Troubleshooting Guide](#troubleshooting-guide)
-12. [Conclusion](#conclusion)
+11. [Error Handling and Resilience](#error-handling-and-resilience)
+12. [Extension Points and Integration](#extension-points-and-integration)
+13. [Conclusion](#conclusion)
 
 ## Introduction
-This guide describes the modern layered architecture of GoNow, featuring a React frontend, FastAPI backend, EGD (European Go Database) integration, and AI-powered chat assistant. The system implements separation of concerns through service-oriented design, MVC-inspired structure, and microservice-like boundaries between frontend and backend components. It explains how HTTP requests flow through the complete stack from React components to external APIs and back to user interfaces.
+This guide describes the modern layered architecture of GoNow, featuring a React frontend, FastAPI backend, EGD (European Go Database) integration, and AI-powered agentic chat assistant. The system implements separation of concerns through service-oriented design, MVC-inspired structure, and microservice-like boundaries between frontend and backend components. It explains how HTTP requests flow through the complete stack from React components to external APIs and back to user interfaces, with special emphasis on the agentic chat system that uses ReAct patterns and tool calling capabilities.
 
 ## Project Structure
 The GoNow application follows a modern full-stack architecture with clear separation between frontend and backend:
@@ -51,20 +49,20 @@ The GoNow application follows a modern full-stack architecture with clear separa
 graph TB
 subgraph "Frontend (React)"
 A["App.tsx"]
-B["Components"]
-C["Pages"]
-D["Hooks"]
-E["API Client"]
+B["Components<br/>ChatWidget.tsx"]
+C["Pages<br/>SearchPage, ProfilePage"]
+D["Hooks<br/>useFavorites.ts"]
+E["API Client<br/>client.ts"]
 end
 subgraph "Backend (FastAPI)"
 F["main.py"]
-G["Routers"]
-H["Services"]
-I["Models"]
+G["Routers<br/>chat.py, players.py"]
+H["Services<br/>chat_agent.py, egd_client.py, egd_tools.py"]
+I["Models<br/>chat.py, player.py"]
 end
 subgraph "External Services"
 J["EGD GraphQL API"]
-K["OpenRouter AI"]
+K["OpenRouter LLM"]
 end
 Client["Web Browser"] --> Frontend["React App"]
 Frontend --> Backend["FastAPI Server"]
@@ -81,7 +79,7 @@ H --> J
 H --> K
 ```
 
-**Updated** Complete restructuring to support modern full-stack architecture with React frontend, FastAPI backend, and external service integrations.
+**Updated** Complete restructuring to support modern full-stack architecture with React frontend, FastAPI backend, and external service integrations including AI agent capabilities.
 
 **Section sources**
 - [main.py:1-42](file://backend/app/main.py#L1-L42)
@@ -91,20 +89,20 @@ H --> K
 The GoNow architecture consists of several key layers with distinct responsibilities:
 
 ### Frontend Layer (React)
-- **Components**: Reusable UI elements like ChatWidget, Navbar
+- **Components**: Reusable UI elements like ChatWidget, Navbar with stone-themed design
 - **Pages**: Feature-specific views like SearchPage, ProfilePage, FavoritesPage
 - **State Management**: React Query for server state, custom hooks for local state
-- **API Client**: Axios-based HTTP client with TypeScript interfaces
+- **API Client**: Axios-based HTTP client with TypeScript interfaces and error handling
 
 ### Backend Layer (FastAPI)
-- **Routers**: RESTful API endpoints handling request/response lifecycle
-- **Services**: Business logic orchestration and external API integration
+- **Routers**: RESTful API endpoints handling request/response lifecycle with validation
+- **Services**: Business logic orchestration, external API integration, and agentic workflows
 - **Models**: Pydantic models for data validation and serialization
 - **Configuration**: CORS middleware, environment variables, app initialization
 
 ### External Integrations
-- **EGD Client**: GraphQL API client with caching for European Go Database
-- **AI Agent**: Agentic chat system with tool calling capabilities via OpenRouter
+- **EGD Client**: GraphQL API client with caching and error handling for European Go Database
+- **AI Agent**: Agentic chat system with ReAct pattern implementation and tool calling via OpenRouter
 
 **Section sources**
 - [main.py:14-31](file://backend/app/main.py#L14-L31)
@@ -133,8 +131,8 @@ Service->>AI : "LLM Request with Tools"
 AI-->>Service : "Response + Tool Calls"
 Service->>EGD : "Execute Tools if needed"
 EGD-->>Service : "Tool Results"
-Service->>AI : "Final Response"
-AI-->>Service : "AI Answer"
+Service->>AI : "Continue with tool results"
+AI-->>Service : "Final Response"
 end
 Service-->>FastAPI : "Structured Response"
 FastAPI-->>React : "JSON Response"
@@ -143,103 +141,10 @@ React-->>User : "Updated UI"
 
 **Updated** New sequence diagram showing complete full-stack interaction including AI agent workflow and EGD integration.
 
-## Detailed Component Analysis
+## Agentic Chat System Architecture
 
-### FastAPI Backend Architecture
-
-#### Application Entry Point
-The main application initializes FastAPI with CORS middleware, router mounting, and health check endpoints.
-
-```mermaid
-flowchart TD
-Start(["FastAPI App Init"]) --> Config["Load Environment & Config"]
-Config --> Middleware["Add CORS Middleware"]
-Middleware --> Routers["Mount API Routers"]
-Routers --> Health["Health Check Endpoint"]
-Health --> Ready["Application Ready"]
-```
-
-**Section sources**
-- [main.py:14-42](file://backend/app/main.py#L14-L42)
-
-#### API Routers Layer
-Routers handle HTTP request/response lifecycle with proper error handling and input validation:
-
-- **Players Router**: `/api/search`, `/api/player/{pin}`, `/api/player/{pin}/games`
-- **Chat Router**: `/api/chat` with agentic AI capabilities
-
-**Section sources**
-- [players.py:1-107](file://backend/app/routers/players.py#L1-L107)
-- [chat.py:1-95](file://backend/app/routers/chat.py#L1-L95)
-
-#### Service Layer Architecture
-Services encapsulate business logic and external API integrations:
-
-- **EGD Client**: GraphQL API client with caching and error handling
-- **Chat Agent**: Agentic loop with tool calling and conversation management
-- **EGD Tools**: Function definitions for AI tool calling
-
-**Section sources**
-- [egd_client.py:1-197](file://backend/app/services/egd_client.py#L1-L197)
-- [chat_agent.py:1-154](file://backend/app/services/chat_agent.py#L1-L154)
-- [egd_tools.py:1-212](file://backend/app/services/egd_tools.py#L1-L212)
-
-### React Frontend Architecture
-
-#### Application Structure
-The React application uses modern patterns with React Router, React Query, and TypeScript:
-
-```mermaid
-classDiagram
-class App {
-+BrowserRouter
-+QueryClientProvider
-+Routes
-+Navbar
-+ChatWidget
-}
-class Pages {
-<<interface>>
-+SearchPage
-+ProfilePage
-+FavoritesPage
-}
-class Components {
-<<interface>>
-+ChatWidget
-+Navbar
-}
-class Hooks {
-<<interface>>
-+useFavorites
-}
-class APIClient {
-+searchPlayers()
-+getPlayer()
-+sendChatMessage()
-}
-App --> Pages
-App --> Components
-App --> Hooks
-App --> APIClient
-```
-
-**Section sources**
-- [App.tsx:1-37](file://frontend/src/App.tsx#L1-L37)
-
-#### State Management Patterns
-- **Server State**: React Query with automatic caching and background updates
-- **Local State**: Custom hooks with localStorage persistence
-- **Component State**: useState for UI-only state management
-
-**Section sources**
-- [useFavorites.ts:1-49](file://frontend/src/hooks/useFavorites.ts#L1-L49)
-- [client.ts:1-86](file://frontend/src/api/client.ts#L1-L86)
-
-## AI Chat Assistant Architecture
-
-### Agentic Chat System
-The AI chat assistant implements an agentic pattern with tool calling capabilities:
+### ReAct Pattern Implementation
+The AI chat assistant implements a sophisticated ReAct (Reasoning and Acting) pattern with agentic tool calling capabilities:
 
 ```mermaid
 sequenceDiagram
@@ -249,6 +154,7 @@ participant ChatRouter as "FastAPI Chat Router"
 participant ChatAgent as "Chat Agent Service"
 participant OpenRouter as "OpenRouter LLM"
 participant EGDTools as "EGD Tools"
+participant EGDClient as "EGD Client"
 User->>ChatWidget : "Send message"
 ChatWidget->>ChatRouter : "POST /api/chat"
 ChatRouter->>ChatAgent : "agent_chat(message, history, context)"
@@ -256,9 +162,17 @@ ChatAgent->>OpenRouter : "LLM Request with tools"
 alt LLM calls tools
 OpenRouter-->>ChatAgent : "tool_calls[]"
 ChatAgent->>EGDTools : "execute_tool(name, args)"
-EGDTools->>EGDTools : "Call EGD Client"
+EGDTools->>EGDClient : "Call EGD Client"
+EGDClient->>EGDClient : "Check Cache"
+alt Cache Hit
+EGDClient-->>EGDTools : "Cached Result"
+else Cache Miss
+EGDClient->>EGDClient : "Query EGD GraphQL API"
+EGDClient-->>EGDTools : "Fresh Data"
+end
 EGDTools-->>ChatAgent : "Tool results"
 ChatAgent->>OpenRouter : "Continue with tool results"
+OpenRouter-->>ChatAgent : "Next iteration or final response"
 else Final response
 OpenRouter-->>ChatAgent : "Text response"
 end
@@ -267,25 +181,25 @@ ChatRouter-->>ChatWidget : "ChatResponse"
 ChatWidget-->>User : "Display response"
 ```
 
-**New** Comprehensive AI chat architecture showing agentic workflow with tool calling capabilities.
+**New** Comprehensive AI chat architecture showing agentic workflow with ReAct pattern, tool calling capabilities, and EGD integration.
 
-### Tool Calling System
-The system supports five core tools for Go analytics:
+### Agentic Loop Mechanics
+The chat agent implements a sophisticated loop mechanism:
 
-1. **search_player**: Find players by name or PIN
-2. **get_player_details**: Retrieve detailed player information
-3. **get_player_rating_history**: Get rating evolution over time
-4. **get_player_games**: Fetch recent game history
-5. **compare_players**: Compare two players side-by-side
+1. **Initial Request**: Send user message with system prompt and available tools to OpenRouter
+2. **Tool Detection**: Check if LLM responds with tool_calls array
+3. **Tool Execution**: Execute requested tools and collect results
+4. **Context Enhancement**: Feed tool results back to LLM for reasoning
+5. **Iteration Control**: Limit iterations to prevent infinite loops (default: 3)
+6. **Fallback Strategy**: Force text response if max iterations reached
 
 **Section sources**
 - [chat_agent.py:30-154](file://backend/app/services/chat_agent.py#L30-L154)
-- [egd_tools.py:5-99](file://backend/app/services/egd_tools.py#L5-L99)
 
 ## EGD Integration Layer
 
-### GraphQL API Client
-The EGD client provides a robust interface to the European Go Database with built-in caching:
+### GraphQL API Client Architecture
+The EGD client provides a robust interface to the European Go Database with built-in caching and error handling:
 
 ```mermaid
 classDiagram
@@ -306,138 +220,235 @@ class Cache {
 +set(key, value, ttl)
 +is_expired(key)
 }
+class GraphQLQueries {
++SearchPlayers
++GetPlayer
++GetPlayerGames
++GetPlayerTournaments
+}
 EGDClient --> Cache : "uses"
+EGDClient --> GraphQLQueries : "executes"
 ```
 
-**New** EGD client architecture showing caching strategy and GraphQL query execution.
+**New** EGD client architecture showing caching strategy, GraphQL query execution, and class relationships.
 
-### Caching Strategy
+### Caching Strategy Implementation
 The implementation includes intelligent caching with configurable TTL (time-to-live):
 
-- **Cache Key Generation**: Based on query and variables
-- **TTL Configuration**: 5-minute default cache lifetime
-- **Error Handling**: Graceful fallback when cache is unavailable
+- **Cache Key Generation**: Based on query string and variables for unique identification
+- **TTL Configuration**: 5-minute default cache lifetime for optimal performance
+- **Memory Storage**: In-memory dictionary for fast access during runtime
+- **Error Handling**: Graceful fallback when cache is unavailable or corrupted
 
 **Section sources**
 - [egd_client.py:11-42](file://backend/app/services/egd_client.py#L11-L42)
 
 ## React Frontend Architecture
 
-### Component Hierarchy
+### Component Hierarchy and Responsibilities
 The frontend follows a modular component architecture with clear separation of concerns:
 
 ```mermaid
 graph TD
-App["App.tsx"] --> Navbar["Navbar.tsx"]
-App --> Routes["React Router"]
-Routes --> SearchPage["SearchPage.tsx"]
-Routes --> ProfilePage["ProfilePage.tsx"]
-Routes --> FavoritesPage["FavoritesPage.tsx"]
-App --> ChatWidget["ChatWidget.tsx"]
-SearchPage --> useFavorites["useFavorites.ts"]
+App["App.tsx<br/>Main Application"] --> Navbar["Navbar.tsx<br/>Navigation"]
+App --> Routes["React Router<br/>Route Configuration"]
+Routes --> SearchPage["SearchPage.tsx<br/>Player Search"]
+Routes --> ProfilePage["ProfilePage.tsx<br/>Player Details"]
+Routes --> FavoritesPage["FavoritesPage.tsx<br/>Saved Players"]
+App --> ChatWidget["ChatWidget.tsx<br/>AI Assistant"]
+SearchPage --> useFavorites["useFavorites.ts<br/>Local State Hook"]
 ProfilePage --> useFavorites
 FavoritesPage --> useFavorites
-SearchPage --> APIClient["client.ts"]
+SearchPage --> APIClient["client.ts<br/>API Client"]
 ProfilePage --> APIClient
 ChatWidget --> APIClient
 ```
 
-**New** React component hierarchy showing relationships between pages, components, and hooks.
+**New** React component hierarchy showing relationships between pages, components, hooks, and API client.
 
-### Data Flow Patterns
-The application implements modern data fetching patterns:
+### Chat Widget Implementation
+The ChatWidget component provides an interactive AI assistant interface:
 
-- **Declarative Data Fetching**: React Query for server state management
-- **Optimistic Updates**: Immediate UI feedback before server confirmation
-- **Error Boundaries**: Graceful error handling and recovery
-- **Caching Strategy**: Automatic caching with configurable stale times
+- **Floating Interface**: Stone-themed floating action button with expandable chat window
+- **Message History**: Persistent conversation state with auto-scroll functionality
+- **Loading States**: Visual feedback during AI processing and tool execution
+- **Quick Prompts**: Predefined prompts for common Go-related queries
+- **Responsive Design**: Mobile-friendly interface with adaptive sizing
 
 **Section sources**
-- [SearchPage.tsx:1-240](file://frontend/src/pages/SearchPage.tsx#L1-L240)
-- [ProfilePage.tsx:1-298](file://frontend/src/pages/ProfilePage.tsx#L1-L298)
 - [ChatWidget.tsx:1-240](file://frontend/src/components/ChatWidget.tsx#L1-L240)
 
-## Dependency Analysis
-The system follows unidirectional dependency flow with clear separation between layers:
-
-```mermaid
-graph LR
-subgraph "Frontend Dependencies"
-React["React Components"] --> Hooks["Custom Hooks"]
-React --> APIClient["API Client"]
-Hooks --> LocalStorage["localStorage"]
-end
-subgraph "Backend Dependencies"
-Routers["FastAPI Routers"] --> Services["Service Layer"]
-Services --> Models["Pydantic Models"]
-Services --> EGD["EGD Client"]
-Services --> AI["OpenRouter Client"]
-end
-subgraph "External Dependencies"
-EGD --> GraphQL["EGD GraphQL API"]
-AI --> LLM["OpenRouter LLM"]
-end
-React --> Routers
-Routers --> Services
-Services --> EGD
-Services --> AI
-```
-
-**Updated** Complete dependency graph showing both frontend and backend relationships.
+### State Management Patterns
+- **Server State**: React Query with automatic caching and background updates
+- **Local State**: Custom hooks with localStorage persistence for favorites
+- **Component State**: useState for UI-only state management
+- **Conversation State**: Message history management with role-based formatting
 
 **Section sources**
-- [main.py:12-31](file://backend/app/main.py#L12-L31)
-- [App.tsx:1-37](file://frontend/src/App.tsx#L1-L37)
+- [client.ts:1-86](file://frontend/src/api/client.ts#L1-86)
+
+## Tool Calling System
+
+### Available EGD Tools
+The system supports five core tools for Go analytics through function calling:
+
+1. **search_player**: Find players by name or PIN with fuzzy matching
+2. **get_player_details**: Retrieve detailed player information including biography and stats
+3. **get_player_rating_history**: Get rating evolution over time from tournament results
+4. **get_player_games**: Fetch recent game history with opponents and results
+5. **compare_players**: Compare two players side-by-side with head-to-head analysis
+
+### Tool Schema Definition
+Each tool is defined with OpenAI-compatible function schemas:
+
+```mermaid
+flowchart TD
+ToolDefs["Tool Definitions<br/>EGD_TOOLS Array"] --> SearchPlayer["search_player<br/>query parameter"]
+ToolDefs --> GetDetails["get_player_details<br/>pin parameter"]
+ToolDefs --> GetRating["get_player_rating_history<br/>pin parameter"]
+ToolDefs --> GetGames["get_player_games<br/>pin, limit parameters"]
+ToolDefs --> ComparePlayers["compare_players<br/>pin1, pin2 parameters"]
+SearchPlayer --> Exec["execute_tool()"]
+GetDetails --> Exec
+GetRating --> Exec
+GetGames --> Exec
+ComparePlayers --> Exec
+Exec --> EGDClient["EGD Client Methods"]
+EGDClient --> GraphQL["EGD GraphQL API"]
+```
+
+**New** Tool calling system architecture showing schema definitions and execution flow.
+
+### Tool Execution Engine
+The execute_tool function provides centralized tool dispatch with error handling:
+
+- **Parameter Validation**: Type checking and required parameter verification
+- **Error Propagation**: Structured error responses for failed operations
+- **Result Formatting**: Consistent response format with success/failure indicators
+- **Logging**: Tool call tracking for debugging and analytics
+
+**Section sources**
+- [chat_agent.py:30-154](file://backend/app/services/chat_agent.py#L30-L154)
+- [egd_tools.py:5-99](file://backend/app/services/egd_tools.py#L5-L99)
+
+## Data Flow Patterns
+
+### Request Processing Pipeline
+The application implements a unidirectional data flow pattern:
+
+```mermaid
+flowchart LR
+subgraph "Frontend Flow"
+UI["User Interaction"] --> Component["React Component"]
+Component --> Hook["Custom Hook"]
+Hook --> API["API Client"]
+API --> State["React Query State"]
+State --> UI
+end
+subgraph "Backend Flow"
+Router["FastAPI Router"] --> Service["Service Layer"]
+Service --> Model["Pydantic Model"]
+Model --> External["External API"]
+External --> Service
+Service --> Router
+end
+subgraph "AI Flow"
+ChatRequest["Chat Request"] --> Agent["Chat Agent"]
+Agent --> LLM["OpenRouter LLM"]
+LLM --> Tools["Tool Execution"]
+Tools --> LLM
+LLM --> ChatResponse["Chat Response"]
+end
+UI --> Router
+```
+
+**Updated** Complete data flow diagram showing frontend, backend, and AI processing pipelines.
+
+### Error Handling Strategies
+- **Frontend**: Try-catch blocks with user-friendly error messages
+- **Backend**: HTTPException handling with appropriate status codes
+- **External APIs**: Retry logic and graceful degradation
+- **AI Services**: Fallback responses and timeout handling
 
 ## Performance Considerations
 
 ### Frontend Optimization
 - **Code Splitting**: React.lazy for route-based code splitting
-- **Data Caching**: React Query with configurable stale times
+- **Data Caching**: React Query with configurable stale times (30 seconds default)
 - **Debounced Search**: Input debouncing for search functionality
 - **Image Optimization**: Lazy loading and responsive images
 
 ### Backend Optimization
 - **Connection Pooling**: HTTPX async clients for efficient API calls
-- **Response Caching**: In-memory caching for EGD queries
+- **Response Caching**: In-memory caching for EGD queries (5-minute TTL)
 - **Pagination**: Efficient data retrieval with pagination parameters
 - **Async Processing**: Non-blocking operations for long-running tasks
 
 ### AI Service Optimization
 - **Conversation History Limiting**: Truncating history to last 10 messages
 - **Tool Call Caching**: Avoiding redundant tool executions
-- **Timeout Configuration**: Appropriate timeouts for external services
+- **Timeout Configuration**: Appropriate timeouts for external services (30-60 seconds)
 - **Error Recovery**: Graceful degradation when AI services are unavailable
+- **Iteration Limits**: Maximum 3 iterations to prevent infinite loops
 
-## Troubleshooting Guide
+## Error Handling and Resilience
 
-### Common Issues and Solutions
+### Multi-Layer Error Strategy
+The system implements comprehensive error handling across all layers:
 
-#### Frontend Issues
-- **Network Errors**: Check CORS configuration and API endpoint availability
-- **State Synchronization**: Verify React Query cache invalidation
-- **Component Rendering**: Check conditional rendering and error boundaries
-- **Local Storage**: Validate localStorage access and data format
+#### Frontend Error Handling
+- **Network Errors**: Connection timeout and retry logic
+- **API Errors**: HTTP status code handling with user feedback
+- **State Errors**: Invalid data handling and recovery mechanisms
+- **UI Errors**: Component-level error boundaries and fallback states
 
-#### Backend Issues
-- **CORS Configuration**: Ensure proper origin configuration for development
-- **Environment Variables**: Validate .env file setup and variable names
-- **External API Errors**: Implement retry logic and graceful error handling
-- **Memory Leaks**: Monitor async task cleanup and resource disposal
+#### Backend Error Handling
+- **Validation Errors**: Pydantic model validation with descriptive messages
+- **External API Errors**: Timeout handling and circuit breaker patterns
+- **Database Errors**: Connection pooling and retry strategies
+- **AI Service Errors**: Fallback responses and graceful degradation
 
-#### AI Service Issues
-- **API Key Configuration**: Verify OpenRouter API key setup
-- **Tool Execution Errors**: Implement fallback responses for failed tool calls
-- **Conversation Context**: Manage conversation history size and relevance
-- **Rate Limiting**: Handle API rate limits with exponential backoff
+#### AI Service Error Handling
+- **API Key Validation**: Early detection of missing configuration
+- **Rate Limiting**: Exponential backoff for rate-limited requests
+- **Tool Execution Errors**: Individual tool failure isolation
+- **Conversation Context**: Context preservation across errors
 
-### Monitoring and Logging
+### Monitoring and Observability
 - **Request Tracking**: Correlation IDs for request tracing
 - **Error Reporting**: Structured error logging with context
 - **Performance Metrics**: Response time monitoring for critical paths
 - **Health Checks**: Endpoint availability and dependency status
 
-## Conclusion
-The GoNow architecture successfully combines modern web technologies with powerful AI capabilities to create a comprehensive Go analytics platform. The layered architecture ensures maintainability and scalability while providing rich user experiences through real-time data visualization and AI-powered insights. The separation of concerns between frontend, backend, and external services enables independent development and deployment while maintaining clear communication protocols.
+## Extension Points and Integration
 
-The system's extensibility is enhanced through well-defined interfaces and modular design patterns, allowing for easy addition of new features such as additional AI tools, data sources, or frontend components. The comprehensive error handling and monitoring strategies ensure reliability and observability in production environments.
+### Adding New AI Tools
+The tool calling system provides clear extension points:
+
+1. **Tool Definition**: Add new function schema to EGD_TOOLS array
+2. **Implementation**: Implement tool logic in execute_tool function
+3. **Testing**: Unit tests for tool behavior and error cases
+4. **Documentation**: Update system prompt and user-facing descriptions
+
+### Extending EGD Client
+New GraphQL queries can be added following established patterns:
+
+1. **Query Definition**: Add new GraphQL query method to EGDClient class
+2. **Caching**: Implement cache key generation and TTL configuration
+3. **Error Handling**: Add appropriate error handling and logging
+4. **Type Safety**: Define TypeScript interfaces for frontend consumption
+
+### Frontend Component Extensions
+New features can be integrated through established patterns:
+
+1. **Component Architecture**: Follow existing component structure and styling
+2. **State Management**: Use React Query for server state, custom hooks for local state
+3. **API Integration**: Extend client.ts with new API methods
+4. **Routing**: Add new routes following React Router patterns
+
+## Conclusion
+The GoNow architecture successfully combines modern web technologies with powerful AI capabilities to create a comprehensive Go analytics platform. The layered architecture ensures maintainability and scalability while providing rich user experiences through real-time data visualization and AI-powered insights. The agentic chat system with ReAct pattern implementation enables sophisticated tool calling and multi-step reasoning capabilities.
+
+The system's extensibility is enhanced through well-defined interfaces and modular design patterns, allowing for easy addition of new AI tools, data sources, or frontend components. The comprehensive error handling and monitoring strategies ensure reliability and observability in production environments. The separation of concerns between frontend, backend, and external services enables independent development and deployment while maintaining clear communication protocols.
+
+The agentic architecture demonstrates advanced AI integration patterns, including tool calling, conversation management, and iterative reasoning, making it suitable for complex analytical tasks beyond simple chat interactions. The EGD integration provides robust data access with caching and error handling, ensuring reliable performance even under high load conditions.

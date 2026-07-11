@@ -1,9 +1,10 @@
-docs: update README with Makefile, agentic chat, and sandbox research
+docs: update all documentation with agentic chat, Makefile, and agent design research
 
-- Replace manual setup with Makefile commands (install/dev/stop/build/clean)
-- Document agentic chat architecture (tool calling loop diagram)
-- Add orchestration alternatives comparison (native vs DeepAgent vs ReAct)
-- Add sandbox research (Pyodide, langchain-sandbox, E2B, Docker)
-- Update project structure with new service files
-- Document all env variables including CHAT_MODEL and CHAT_MAX_ITERATIONS
-- Update architecture diagram to show agent tool calling flow
+- Fix README.md (remove duplicate old content)
+- Update ARCHITECTURE.md with agent tool calling flow and new file structure
+- Update AGENTS.md: replace bat references with Makefile, add new files
+- Create docs/AGENT_DESIGN.md: full research document covering:
+  - Orchestration approaches (native tool calling vs LangGraph vs ReAct)
+  - Sandbox options (Pyodide, langchain-sandbox, E2B, Docker)
+  - Model configuration and comparison
+  - Implementation file reference

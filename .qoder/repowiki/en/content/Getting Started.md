@@ -10,6 +10,7 @@
 - [backend/app/main.py](file://backend/app/main.py)
 - [backend/app/routers/players.py](file://backend/app/routers/players.py)
 - [backend/app/models/player.py](file://backend/app/models/player.py)
+- [backend/app/services/chat_agent.py](file://backend/app/services/chat_agent.py)
 - [frontend/src/App.tsx](file://frontend/src/App.tsx)
 - [frontend/src/api/client.ts](file://frontend/src/api/client.ts)
 - [frontend/vite.config.ts](file://frontend/vite.config.ts)
@@ -17,12 +18,13 @@
 
 ## Update Summary
 **Changes Made**
-- Updated installation instructions to use new Makefile-based build system
-- Modified virtual environment setup to use backend/.venv path
-- Enhanced configuration documentation with detailed .env variable setup
-- Modernized development workflow with Make targets replacing batch scripts
-- Updated all command examples to use Makefile commands
-- Improved troubleshooting section with Makefile-specific guidance
+- Updated installation instructions to use new Makefile-based build system with standardized commands
+- Modified virtual environment setup to use backend/.venv path consistently
+- Enhanced configuration documentation with comprehensive .env variable setup including CHAT_MODEL options and CHAT_MAX_ITERATIONS settings
+- Modernized development workflow with Make targets replacing manual setup processes
+- Updated all command examples to use Makefile commands for consistency
+- Added detailed environment variable documentation with model options and configuration defaults
+- Improved troubleshooting section with Makefile-specific guidance and common setup issues
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -89,7 +91,7 @@ C --> S["vite.config.ts"]
 - `.gitignore`: Excludes local artifacts, environment files, and IDE folders
 
 **Section sources**
-- [README.md:40-67](file://README.md#L40-L67)
+- [README.md:57-90](file://README.md#L57-L90)
 - [.gitignore:1-40](file://.gitignore#L1-L40)
 
 ## Core Components
@@ -127,13 +129,13 @@ Frontend-->>User : "Display Results"
 Note over Frontend,Backend : "CORS enabled for localhost : 5173"
 User->>Frontend : "Send Chat Message"
 Frontend->>Backend : "POST /api/chat"
-Backend->>OpenRouter : "Chat Completion"
-OpenRouter-->>Backend : "AI Response"
+Backend->>OpenRouter : "Chat Completion with Tool Calling"
+OpenRouter-->>Backend : "AI Response with Tool Calls"
 Backend-->>Frontend : "Chat Reply"
 Frontend-->>User : "Display AI Response"
 ```
 
-**Updated** The architecture now includes both backend and frontend servers with CORS configuration for cross-origin requests.
+**Updated** The architecture now includes both backend and frontend servers with CORS configuration for cross-origin requests and enhanced chat functionality with tool calling capabilities.
 
 **Diagram sources**
 - [backend/app/main.py:20-27](file://backend/app/main.py#L20-L27)
@@ -145,6 +147,7 @@ Frontend-->>User : "Display AI Response"
 Before starting, ensure you have the following installed:
 - **Python 3.14+** for the backend
 - **Node.js 18+** and npm for the frontend
+- **GNU Make** (comes with Git Bash on Windows)
 - **Git** for version control
 
 ### Quick Start with Makefile
@@ -173,8 +176,11 @@ python -m venv .venv
 
 pip install -r requirements.txt
 
-# Create .env file with your EGD API token
+# Create .env file with your EGD API token and optional AI configuration
 echo "EGD_TOKEN=your_token_here" > .env
+echo "OPENROUTER_API_KEY=your_openrouter_key_here" >> .env
+echo "CHAT_MODEL=google/gemini-2.0-flash-001" >> .env
+echo "CHAT_MAX_ITERATIONS=3" >> .env
 
 # Start the development server
 uvicorn app.main:app --reload
@@ -192,7 +198,7 @@ npm run dev
 The frontend will be available at [http://localhost:5173](http://localhost:5173).
 
 **Section sources**
-- [README.md:69-103](file://README.md#L69-L103)
+- [README.md:92-137](file://README.md#L92-L137)
 - [Makefile:9-36](file://Makefile#L9-L36)
 - [backend/requirements.txt:1-6](file://backend/requirements.txt#L1-L6)
 - [frontend/package.json:6-11](file://frontend/package.json#L6-L11)
@@ -222,16 +228,26 @@ The Makefile provides convenient commands for common development tasks:
 
 ### Environment Variables
 Create a `.env` file in the `backend/` directory:
+
 ```env
+# Required for EGD API access
 EGD_TOKEN=your_egd_api_token_here
+
+# Optional: Enable AI chat functionality
+OPENROUTER_API_KEY=your_openrouter_api_key_here
+
+# AI Chat Configuration
+CHAT_MODEL=google/gemini-2.0-flash-001
+CHAT_MAX_ITERATIONS=3
 ```
 
-**Updated** The backend automatically loads environment variables from `backend/.env` using python-dotenv. The virtual environment is now managed in `backend/.venv` when using the Makefile.
+**Updated** The backend automatically loads environment variables from `backend/.env` using python-dotenv. The virtual environment is now managed in `backend/.venv` when using the Makefile. Available CHAT_MODEL options include `google/gemini-2.0-flash-001` (default), `openai/gpt-4o-mini`, and `anthropic/claude-3.5-sonnet`.
 
 **Section sources**
 - [Makefile:1-54](file://Makefile#L1-L54)
 - [backend/app/main.py:8-10](file://backend/app/main.py#L8-L10)
 - [backend/app/main.py:20-27](file://backend/app/main.py#L20-L27)
+- [backend/app/services/chat_agent.py:10-11](file://backend/app/services/chat_agent.py#L10-L11)
 
 ## First API Endpoint Tutorial
 
@@ -447,6 +463,7 @@ npm test
 **Environment Variables**
 - Verify `.env` file exists in `backend/` directory
 - Ensure `EGD_TOKEN` is properly configured
+- For AI chat features, verify `OPENROUTER_API_KEY` is set
 - Restart backend server after changing environment variables
 
 **Virtual Environment Issues**
@@ -474,9 +491,16 @@ npm test
 - On Windows, use Git Bash or PowerShell with Make support
 - Alternative: Run commands directly from the README.md
 
+**AI Chat Configuration Issues**
+- Verify `OPENROUTER_API_KEY` is set in `backend/.env`
+- Check `CHAT_MODEL` value matches available OpenRouter models
+- Adjust `CHAT_MAX_ITERATIONS` if experiencing timeout issues
+- Test chat endpoint at `/api/chat` via Swagger UI
+
 **Section sources**
 - [backend/app/main.py:20-27](file://backend/app/main.py#L20-L27)
 - [Makefile:38-53](file://Makefile#L38-L53)
+- [backend/app/services/chat_agent.py:42-48](file://backend/app/services/chat_agent.py#L42-L48)
 
 ## Conclusion
 You now have the essentials to set up and develop the GoNow full-stack application. With both backend and frontend environments configured, you can create new features, implement API endpoints, and build user interfaces. The modular architecture separates concerns across routers, services, models, components, and pages, making it easy to maintain and extend. Remember to follow the established patterns for code organization, error handling, and testing to keep the codebase clean and maintainable as it grows.
@@ -485,6 +509,7 @@ You now have the essentials to set up and develop the GoNow full-stack applicati
 
 ### Quick Reference Checklist
 - ✅ Python 3.14+ and Node.js 18+ installed
+- ✅ GNU Make available (comes with Git Bash on Windows)
 - ✅ Virtual environment created and activated (backend/.venv)
 - ✅ All dependencies installed (`make install`)
 - ✅ Environment variables configured (`.env` file in backend/)
@@ -515,6 +540,20 @@ make stop         # Stop servers
 - `POST /api/chat` - Send chat message
 - `GET /docs` - Interactive API documentation
 
+### Environment Variables Reference
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `EGD_TOKEN` | EGD GraphQL API bearer token | - | Yes |
+| `OPENROUTER_API_KEY` | OpenRouter API key for AI chat | - | No |
+| `CHAT_MODEL` | OpenRouter model ID for chat | `google/gemini-2.0-flash-001` | No |
+| `CHAT_MAX_ITERATIONS` | Max tool-calling iterations per chat turn | `3` | No |
+
+**Available CHAT_MODEL Options:**
+- `google/gemini-2.0-flash-001` — Fast, cheap, supports tool calling (default)
+- `openai/gpt-4o-mini` — Good balance of speed and quality
+- `anthropic/claude-3.5-sonnet` — Higher quality, slower/more expensive
+
 **Section sources**
-- [README.md:105-119](file://README.md#L105-L119)
+- [README.md:139-154](file://README.md#L139-L154)
 - [backend/app/routers/players.py:8-106](file://backend/app/routers/players.py#L8-L106)
+- [backend/app/services/chat_agent.py:10-11](file://backend/app/services/chat_agent.py#L10-L11)
