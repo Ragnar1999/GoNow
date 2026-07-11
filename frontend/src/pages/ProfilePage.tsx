@@ -23,6 +23,28 @@ export default function ProfilePage() {
     ? (error as any).response?.data?.detail || 'Failed to load player data.'
     : isError ? 'Failed to load player data.' : null;
 
+  // Move useMemo BEFORE early returns to follow Rules of Hooks
+  const chartData = useMemo(() =>
+    player?.rating_history
+      ?.filter(h => h.rating_after != null)
+      .map(h => ({
+        date: h.date?.split(' ')[0] ?? '',
+        tournament: h.tournament,
+        rating: Math.round(h.rating_after!),
+        ratingBefore: h.rating_before ? Math.round(h.rating_before) : null,
+        placement: h.placement,
+        grade: h.grade,
+        won: h.won,
+        lost: h.lost,
+      })) ?? [],
+    [player?.rating_history]
+  );
+
+  const peakRating = useMemo(() =>
+    chartData.length > 0 ? Math.max(...chartData.map(d => d.rating)) : null,
+    [chartData]
+  );
+
   if (isLoading) {
     return (
       <div style={styles.container}>
@@ -52,27 +74,6 @@ export default function ProfilePage() {
       </div>
     );
   }
-
-  const chartData = useMemo(() =>
-    player.rating_history
-      .filter(h => h.rating_after != null)
-      .map(h => ({
-        date: h.date?.split(' ')[0] ?? '',
-        tournament: h.tournament,
-        rating: Math.round(h.rating_after!),
-        ratingBefore: h.rating_before ? Math.round(h.rating_before) : null,
-        placement: h.placement,
-        grade: h.grade,
-        won: h.won,
-        lost: h.lost,
-      })),
-    [player.rating_history]
-  );
-
-  const peakRating = useMemo(() =>
-    chartData.length > 0 ? Math.max(...chartData.map(d => d.rating)) : null,
-    [chartData]
-  );
 
   const fav = isFavorite(player.pin);
   const isDan = player.grade.toLowerCase().includes('d') && !player.grade.toLowerCase().includes('k');
