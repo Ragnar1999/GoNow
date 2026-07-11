@@ -1,0 +1,1 @@
+Single-file configuration at the repository root with no code; it defines exclusion patterns grouped by category (Python, Environment, Node, IDE, OS, Data, Logs) so that generated or local-only files stay out of version control across all sub-projects in this monorepo.
