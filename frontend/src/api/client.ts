@@ -72,7 +72,7 @@ export async function getPlayerTournaments(pin: number) {
 }
 
 export interface PlayerGame {
-  id: string;
+  id: number | string;
   date: string;
   round: number;
   result: string;

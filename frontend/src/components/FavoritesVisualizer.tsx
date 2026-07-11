@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import type { PlayerSummary } from '../api/client';
+import type { PlayerSummary, PlayerGame } from '../api/client';
 import { getPlayerGames } from '../api/client';
 
 interface HeadToHead {
@@ -8,6 +8,56 @@ interface HeadToHead {
   wins1: number;
   wins2: number;
   total: number;
+}
+
+function normalizeColor(color: string | undefined | null): 'b' | 'w' | null {
+  const normalized = color?.toLowerCase().trim();
+  if (!normalized) return null;
+  if (normalized === 'black' || normalized === 'b') return 'b';
+  if (normalized === 'white' || normalized === 'w') return 'w';
+  return null;
+}
+
+function getHeadToHeadOutcome(game: PlayerGame, targetPin: number, opponentPin: number): 'win' | 'loss' | 'draw' | null {
+  const pins = [game.player1?.pin, game.player2?.pin];
+  if (!pins.includes(targetPin) || !pins.includes(opponentPin)) return null;
+
+  const normalizedResult = (game.result ?? '').toLowerCase().trim();
+  if (!normalizedResult) return null;
+
+  if (
+    normalizedResult.includes('jigo') ||
+    normalizedResult === 'j' ||
+    normalizedResult === '=' ||
+    normalizedResult === '0-0' ||
+    normalizedResult === '0.5-0.5' ||
+    normalizedResult === '½-½'
+  ) {
+    return 'draw';
+  }
+
+  const isTargetPlayer1 = game.player1?.pin === targetPin;
+  const targetColor = normalizeColor(isTargetPlayer1 ? game.color1 : game.color2);
+  if (!targetColor) return null;
+
+  const firstToken = normalizedResult.split(/[+-]/)[0].trim();
+  if (firstToken === 'b' || normalizedResult.includes('black')) {
+    return targetColor === 'b' ? 'win' : 'loss';
+  }
+
+  if (firstToken === 'w' || normalizedResult.includes('white')) {
+    return targetColor === 'w' ? 'win' : 'loss';
+  }
+
+  if (normalizedResult.includes('b') && !normalizedResult.includes('w')) {
+    return targetColor === 'b' ? 'win' : 'loss';
+  }
+
+  if (normalizedResult.includes('w') && !normalizedResult.includes('b')) {
+    return targetColor === 'w' ? 'win' : 'loss';
+  }
+
+  return null;
 }
 
 export default function FavoritesVisualizer({ players }: { players: PlayerSummary[] }) {
@@ -40,45 +90,19 @@ export default function FavoritesVisualizer({ players }: { players: PlayerSummar
           let wins1 = 0;
           let wins2 = 0;
 
-          // Check p1's games for matches with p2
           const p1Games = allGames.get(p1.pin) || [];
-          const checkedGameIds = new Set();
-          for (const game of p1Games) {
-            const gamePins = [game.player1.pin, game.player2.pin];
-            if (gamePins.includes(p1.pin) && gamePins.includes(p2.pin) && !checkedGameIds.has(game.id)) {
-              checkedGameIds.add(game.id);
-              console.log("DEBUG: Game result:", game);
-              // Try to parse result - let's check possible formats
-              if (game.result) {
-                const result = game.result.toLowerCase();
-                const isP1Player1 = game.player1.pin === p1.pin;
-                const p1Color = isP1Player1 ? game.color1?.toLowerCase() : game.color2?.toLowerCase();
-                
-                if (result.includes("jigo") || result === "j" || result === "=") {
-                  // ignore jigo
-                } else if (result.includes("b") && !result.includes("w")) {
-                  // Black won
-                  if (p1Color === "black" || p1Color === "b") wins1++;
-                  else wins2++;
-                } else if (result.includes("w") && !result.includes("b")) {
-                  // White won
-                  if (p1Color === "white" || p1Color === "w") wins1++;
-                  else wins2++;
-                } else if (result.includes("+") || result.includes("-")) {
-                   // Fallback for some weird formats
-                   const parts = result.split("+");
-                   if (parts.length > 0) {
-                      const firstPart = parts[0].trim();
-                      if (firstPart === "b") {
-                        if (p1Color === "black" || p1Color === "b") wins1++;
-                        else wins2++;
-                      } else if (firstPart === "w") {
-                        if (p1Color === "white" || p1Color === "w") wins1++;
-                        else wins2++;
-                      }
-                   }
-                }
-              }
+          const p2Games = allGames.get(p2.pin) || [];
+          const checkedGameIds = new Set<string>();
+          for (const game of [...p1Games, ...p2Games]) {
+            const gameKey = `${game.id ?? ''}-${game.date ?? ''}-${game.round ?? ''}-${game.player1?.pin ?? ''}-${game.player2?.pin ?? ''}`;
+            if (checkedGameIds.has(gameKey)) continue;
+            checkedGameIds.add(gameKey);
+
+            const outcome = getHeadToHeadOutcome(game, p1.pin, p2.pin);
+            if (outcome === 'win') {
+              wins1++;
+            } else if (outcome === 'loss') {
+              wins2++;
             }
           }
 
@@ -137,9 +161,6 @@ export default function FavoritesVisualizer({ players }: { players: PlayerSummar
     for (const h2h of headToHead) {
       const pos1 = nodePositions.get(h2h.pin1)!;
       const pos2 = nodePositions.get(h2h.pin2)!;
-      const dx = pos2.x - pos1.x;
-      const dy = pos2.y - pos1.y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
 
       // Draw a thick line for total games
       const lineWidth = 3 + h2h.total * 1.5;
