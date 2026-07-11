@@ -115,11 +115,6 @@ class EGDClient:
             totalTournaments
             lastAppearance
             egfPlacement
-            biography {
-              type
-              biography
-              photo
-            }
             placements {
               data {
                 id
@@ -144,7 +139,28 @@ class EGDClient:
         }
         """
         result = await self._query(query, {"pin": pin})
-        return result["data"]["player"]
+        player = result["data"]["player"]
+        
+        # Try to fetch biography separately (some players have corrupted biography data)
+        try:
+            bio_query = """
+            query GetPlayerBio($pin: Int!) {
+              player(pin: $pin) {
+                biography {
+                  type
+                  biography
+                  photo
+                }
+              }
+            }
+            """
+            bio_result = await self._query(bio_query, {"pin": pin})
+            player["biography"] = bio_result["data"]["player"].get("biography")
+        except (EGDAPIError, KeyError):
+            # Biography fetch failed, set to None
+            player["biography"] = None
+        
+        return player
 
     async def get_player_games(self, pin: int, page: int = 1, limit: int = 50) -> dict:
         """Get player's game history."""
