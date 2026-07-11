@@ -1,5 +1,1 @@
-fix: resolve React hooks order violation and expand CORS origins
-
-- Move useMemo hooks before early returns in ProfilePage to follow Rules of Hooks
-- Use optional chaining for player?.rating_history to handle undefined state
-- Add localhost:5174 and localhost:5175 to CORS allowed origins
+chore: remove temp commit message file
