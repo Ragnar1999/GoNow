@@ -6,21 +6,35 @@ GoNow is a Go player tracking web app. Python 3.14 FastAPI backend proxies the E
 
 ## Running the Project
 
-### Backend
+### Quick Start (both together)
 ```bash
-cd backend
-pip install -r requirements.txt
-python -m uvicorn app.main:app --reload --port 8000
+# From project root - starts BE + FE in separate windows
+start.bat
+
+# To stop both servers
+stop.bat
 ```
 
-### Frontend
+### Backend (manual)
+```bash
+cd backend
+.venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8000
+```
+
+### Frontend (manual)
 ```bash
 cd frontend
-npm install
 npm run dev
 ```
 
 Frontend runs on `http://localhost:5173`, backend on `http://localhost:8000`.
+
+### Configuration
+Backend config is in `backend/.env`:
+- `EGD_API_TOKEN` - EGD API bearer token
+- `OPENROUTER_API_KEY` - OpenRouter API key for chat
+- `CHAT_MODEL` - OpenRouter model ID (default: `google/gemini-2.0-flash-001`)
+- `CHAT_MAX_ITERATIONS` - Max tool-calling iterations (default: 3)
 
 ## Code Conventions
 
@@ -46,7 +60,9 @@ Frontend runs on `http://localhost:5173`, backend on `http://localhost:8000`.
 | `backend/app/main.py` | FastAPI app, CORS, router mounting |
 | `backend/app/services/egd_client.py` | EGD GraphQL API wrapper |
 | `backend/app/routers/players.py` | Player search/profile routes |
-| `backend/app/routers/chat.py` | OpenRouter chat proxy |
+| `backend/app/routers/chat.py` | Agentic chat route (tool calling) |
+| `backend/app/services/chat_agent.py` | Agent loop with OpenRouter tool calling |
+| `backend/app/services/egd_tools.py` | EGD operations as tool schemas + executor |
 | `frontend/src/App.tsx` | Root component, routing |
 | `frontend/src/api/client.ts` | Axios instance + API functions |
 | `frontend/src/pages/SearchPage.tsx` | Player search UI |
