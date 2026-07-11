@@ -1,0 +1,9 @@
+docs: update README with Makefile, agentic chat, and sandbox research
+
+- Replace manual setup with Makefile commands (install/dev/stop/build/clean)
+- Document agentic chat architecture (tool calling loop diagram)
+- Add orchestration alternatives comparison (native vs DeepAgent vs ReAct)
+- Add sandbox research (Pyodide, langchain-sandbox, E2B, Docker)
+- Update project structure with new service files
+- Document all env variables including CHAT_MODEL and CHAT_MAX_ITERATIONS
+- Update architecture diagram to show agent tool calling flow
