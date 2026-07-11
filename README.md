@@ -95,8 +95,13 @@ GoNow/
 
 - **Python 3.14+**
 - **Node.js 18+** and npm
-- **GNU Make** (comes with Git Bash on Windows)
+- **GNU Make** — Install via `winget install --id GnuWin32.Make`, or use Git Bash
 - An EGD API token (set in `backend/.env`)
+
+> **Windows note:** After installing GNU Make, you may need to restart your terminal (or IDE) for the PATH to update. If `make` is not recognized, run this first:
+> ```bash
+> set PATH=%PATH%;C:\Program Files (x86)\GnuWin32\bin
+> ```
 
 ### Quick Start (Makefile)
 
