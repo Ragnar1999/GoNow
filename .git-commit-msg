@@ -1,10 +1,1 @@
-docs: update all documentation with agentic chat, Makefile, and agent design research
-
-- Fix README.md (remove duplicate old content)
-- Update ARCHITECTURE.md with agent tool calling flow and new file structure
-- Update AGENTS.md: replace bat references with Makefile, add new files
-- Create docs/AGENT_DESIGN.md: full research document covering:
-  - Orchestration approaches (native tool calling vs LangGraph vs ReAct)
-  - Sandbox options (Pyodide, langchain-sandbox, E2B, Docker)
-  - Model configuration and comparison
-  - Implementation file reference
+docs: fix ARCHITECTURE.md - remove old appended duplicate content
