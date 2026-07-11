@@ -373,7 +373,7 @@ Example test structure:
 # tests/test_players.py
 import pytest
 from fastapi.testclient import TestClient
-from app.main import app
+从 app.main import app
 
 client = TestClient(app)
 

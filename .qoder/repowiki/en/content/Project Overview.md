@@ -10,6 +10,7 @@
 - [backend/app/services/egd_tools.py](file://backend/app/services/egd_tools.py)
 - [backend/app/services/chat_agent.py](file://backend/app/services/chat_agent.py)
 - [backend/app/models/player.py](file://backend/app/models/player.py)
+- [backend/app/models/chat.py](file://backend/app/models/chat.py)
 - [frontend/src/App.tsx](file://frontend/src/App.tsx)
 - [frontend/src/api/client.ts](file://frontend/src/api/client.ts)
 - [frontend/src/pages/SearchPage.tsx](file://frontend/src/pages/SearchPage.tsx)
@@ -17,17 +18,17 @@
 - [frontend/package.json](file://frontend/package.json)
 - [Makefile](file://Makefile)
 - [docs/ARCHITECTURE.md](file://docs/ARCHITECTURE.md)
+- [docs/AGENT_DESIGN.md](file://docs/AGENT_DESIGN.md)
 </cite>
 
 ## Update Summary
 **Changes Made**
-- Updated introduction to reflect comprehensive full-stack architecture with React + FastAPI and agentic AI chat system
-- Added complete project structure documentation with detailed component breakdown
-- Enhanced architecture diagrams to show agentic chat flow with tool calling capabilities
-- Updated technology stack to include modern frontend technologies and OpenRouter integration
-- Added practical examples demonstrating full-stack request flow including AI agent orchestration
-- Expanded service layer patterns to include EGD GraphQL API integration and OpenRouter tool calling
-- Added development workflow documentation with Makefile orchestration
+- Updated introduction to emphasize the comprehensive agentic AI chat system with native tool calling capabilities
+- Enhanced architecture diagrams to show the complete agentic flow with five core EGD tools
+- Added detailed API endpoint information clarifying that /api/chat uses 'agentic AI chat (tool calling)'
+- Expanded service layer documentation to include the complete backend structure with tool orchestration
+- Updated technology stack to highlight OpenRouter integration and agentic capabilities
+- Added comprehensive examples demonstrating the agentic data flow from HTTP requests through tool calling to final responses
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -46,7 +47,7 @@
 14. [Conclusion](#conclusion)
 
 ## Introduction
-GoNow is a comprehensive full-stack web application designed to track European Go players' progress over time, combining a modern React frontend with a Python FastAPI backend. The application provides comprehensive player search capabilities, detailed profile views with rating evolution charts, favorites management, and an integrated AI chat assistant powered by OpenRouter with agentic tool calling capabilities.
+GoNow is a comprehensive full-stack web application designed to track European Go players' progress over time, combining a modern React frontend with a Python FastAPI backend. The application provides comprehensive player search capabilities, detailed profile views with rating evolution charts, favorites management, and an integrated **agentic AI chat assistant powered by OpenRouter with native tool calling capabilities**.
 
 The project emphasizes a layered architecture and service-oriented design, providing clear separation of concerns across routing, business logic, and data access layers. It follows an MVC-inspired structure where routers handle HTTP concerns, services encapsulate business rules and external API integrations, and models represent domain data and persistence interactions.
 
@@ -56,7 +57,9 @@ This foundation supports building robust APIs by:
 - Providing a predictable request flow from HTTP entry points through routers to services and models
 - Integrating external APIs (EGD GraphQL and OpenRouter) through dedicated service layers
 - Maintaining clean client-server communication with TypeScript type safety
-- Implementing agentic AI capabilities with native tool calling for autonomous data retrieval
+- Implementing **agentic AI capabilities with native tool calling** for autonomous data retrieval and analysis
+
+**Updated** The application now features a sophisticated agentic chat system that allows the AI to autonomously call EGD tools for real-time player data retrieval, comparison, and analysis without requiring explicit user commands.
 
 **Section sources**
 - [README.md:1-23](file://README.md#L1-L23)
@@ -98,7 +101,7 @@ Tools --> Agent
 Agent --> External
 ```
 
-**Updated** The project now includes both frontend and backend applications with clear separation of concerns, modern development practices, and advanced agentic AI capabilities with tool calling.
+**Updated** The project now includes both frontend and backend applications with clear separation of concerns, modern development practices, and advanced agentic AI capabilities with native tool calling for autonomous data retrieval.
 
 **Section sources**
 - [README.md:57-90](file://README.md#L57-L90)
@@ -111,7 +114,7 @@ Agent --> External
 - **Modular Design**: Each directory represents a cohesive module, encouraging small, focused packages that can evolve independently.
 - **External API Integration**: Dedicated service classes handle communication with external APIs (EGD GraphQL and OpenRouter) with caching and error handling.
 - **Type Safety**: Full TypeScript integration ensures type consistency between frontend and backend through shared interfaces and Pydantic models.
-- **Agentic AI Capabilities**: Native tool calling allows the AI to autonomously call EGD tools for real-time data retrieval and analysis.
+- **Agentic AI Capabilities**: Native tool calling allows the AI to autonomously call EGD tools for real-time data retrieval and analysis without explicit orchestration frameworks.
 
 These patterns collectively support building RESTful APIs with clear boundaries, predictable data flow, and straightforward extension points for new features.
 
@@ -221,6 +224,7 @@ Expected behavior:
 
 **Section sources**
 - [backend/app/models/player.py:6-60](file://backend/app/models/player.py#L6-L60)
+- [backend/app/models/chat.py:1-21](file://backend/app/models/chat.py#L1-L21)
 
 ### Frontend Components
 Responsibilities:
@@ -318,6 +322,7 @@ The agentic chat system leverages OpenRouter's native tool calling capabilities 
 - **Context Management**: Maintains conversation history and page context for relevant responses
 
 ### Available Tools
+Five core EGD tools are available for the AI agent:
 - **search_player**: Search for Go players by name or PIN
 - **get_player_details**: Retrieve comprehensive player profiles with statistics
 - **get_player_rating_history**: Access rating evolution data over time
@@ -452,3 +457,5 @@ Common issues and strategies:
 GoNow provides a comprehensive full-stack foundation for building modern web applications using React + FastAPI architecture with advanced agentic AI capabilities. By separating frontend and backend concerns while maintaining clear communication patterns, teams can develop features incrementally while maintaining clarity and testability. The layered architecture, service layer pattern, modular design, and agentic tool calling make it straightforward to onboard new contributors and scale the application over time.
 
 The integration with external APIs (EGD GraphQL and OpenRouter) demonstrates real-world patterns for third-party service integration, while the TypeScript-first approach ensures type safety across the entire stack. The agentic chat system showcases cutting-edge AI capabilities with native tool calling, enabling autonomous data retrieval and analysis. This foundation supports building robust, maintainable applications that can evolve with changing requirements and leverage the latest AI advancements.
+
+**Updated** The addition of the agentic chat system with five core EGD tools transforms GoNow from a simple data tracking application into an intelligent analytics platform that can autonomously retrieve, analyze, and present Go player data through natural language conversations.

@@ -1,10 +1,11 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { useMemo } from 'react';
 import { getPlayer } from '../api/client';
 import { useFavorites } from '../hooks/useFavorites';
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer,
+  ComposedChart, Line, Area, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer, ReferenceLine,
 } from 'recharts';
 
 export default function ProfilePage() {
@@ -40,18 +41,26 @@ export default function ProfilePage() {
     );
   }
 
-  const chartData = player.rating_history
-    .filter(h => h.rating_after != null)
-    .map(h => ({
-      date: h.date?.split(' ')[0] ?? '',
-      tournament: h.tournament,
-      rating: Math.round(h.rating_after!),
-      ratingBefore: h.rating_before ? Math.round(h.rating_before) : null,
-      placement: h.placement,
-      grade: h.grade,
-      won: h.won,
-      lost: h.lost,
-    }));
+  const chartData = useMemo(() =>
+    player.rating_history
+      .filter(h => h.rating_after != null)
+      .map(h => ({
+        date: h.date?.split(' ')[0] ?? '',
+        tournament: h.tournament,
+        rating: Math.round(h.rating_after!),
+        ratingBefore: h.rating_before ? Math.round(h.rating_before) : null,
+        placement: h.placement,
+        grade: h.grade,
+        won: h.won,
+        lost: h.lost,
+      })),
+    [player.rating_history]
+  );
+
+  const peakRating = useMemo(() =>
+    chartData.length > 0 ? Math.max(...chartData.map(d => d.rating)) : null,
+    [chartData]
+  );
 
   const fav = isFavorite(player.pin);
   const isDan = player.grade.toLowerCase().includes('d') && !player.grade.toLowerCase().includes('k');
@@ -103,44 +112,76 @@ export default function ProfilePage() {
         <div style={styles.section}>
           <h2 style={styles.sectionTitle}>Rating Evolution</h2>
           <div style={styles.chartContainer}>
-            <ResponsiveContainer width="100%" height={280}>
-              <LineChart data={chartData} margin={{ top: 5, right: 24, left: 12, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e8dcc8" />
-                <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#999' }}
-                  tickFormatter={(d) => d.substring(0, 7)} />
-                <YAxis domain={['auto', 'auto']} tick={{ fontSize: 11, fill: '#999' }} />
-                <Tooltip content={({ active, payload }) => {
-                  if (!active || !payload?.[0]) return null;
-                  const d = payload[0].payload;
-                  return (
-                    <div style={styles.tooltip}>
-                      <p style={{ fontWeight: 600, marginBottom: 2 }}>{d.tournament}</p>
-                      <p style={{ fontSize: 11, color: '#999' }}>{d.date}</p>
-                      <p>Rating: {d.ratingBefore} &rarr; <strong>{d.rating}</strong></p>
-                      <p>Place: #{d.placement} &middot; W/L: {d.won}/{d.lost}</p>
-                      <p>Grade: {d.grade}</p>
-                    </div>
-                  );
-                }} />
-                <Line type="monotone" dataKey="rating" stroke="var(--wood-dark)"
-                  strokeWidth={2.5} dot={{ r: 3, fill: 'var(--wood-dark)', stroke: '#fff', strokeWidth: 1 }}
-                  activeDot={{ r: 6, fill: 'var(--stone-black)' }} />
-              </LineChart>
+            <ResponsiveContainer width="100%" height={300}>
+              <ComposedChart
+                data={chartData}
+                margin={{ top: 10, right: 24, left: 12, bottom: 5 }}
+                accessibilityLayer
+                role="img"
+                aria-label={`Rating evolution chart for ${player.firstName} ${player.lastName}, showing rating changes over ${chartData.length} tournaments`}
+              >
+                <defs>
+                  <linearGradient id="ratingGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="var(--wood-dark)" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="var(--wood-dark)" stopOpacity={0.02} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e8dcc8" vertical={false} />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fontSize: 11, fill: '#999' }}
+                  tickFormatter={(d) => d.substring(0, 7)}
+                  axisLine={{ stroke: '#e8dcc8' }}
+                  tickLine={false}
+                  interval="preserveStartEnd"
+                />
+                <YAxis
+                  domain={['auto', 'auto']}
+                  tick={{ fontSize: 11, fill: '#999' }}
+                  axisLine={false}
+                  tickLine={false}
+                  width={45}
+                />
+                <Tooltip content={<RatingTooltip />} cursor={{ stroke: 'var(--wood-dark)', strokeWidth: 1, strokeDasharray: '4 4' }} />
+                {peakRating && (
+                  <ReferenceLine
+                    y={peakRating}
+                    stroke="#27ae60"
+                    strokeDasharray="3 3"
+                    strokeWidth={1}
+                    label={{ value: `Peak: ${peakRating}`, position: 'insideTopRight', fill: '#27ae60', fontSize: 11 }}
+                  />
+                )}
+                <Area
+                  type="monotone"
+                  dataKey="rating"
+                  fill="url(#ratingGradient)"
+                  stroke="none"
+                />
+                <Line
+                  type="monotone"
+                  dataKey="rating"
+                  stroke="var(--wood-dark)"
+                  strokeWidth={2.5}
+                  dot={{ r: 3, fill: 'var(--wood-dark)', stroke: '#fff', strokeWidth: 1.5 }}
+                  activeDot={{ r: 6, fill: 'var(--stone-black)', stroke: '#fff', strokeWidth: 2 }}
+                  animationDuration={800}
+                  animationEasing="ease-out"
+                />
+              </ComposedChart>
             </ResponsiveContainer>
           </div>
-          {chartData.length > 0 && (
-            <div style={styles.chartSummary}>
-              <span>First: <strong>{chartData[0].rating}</strong></span>
-              <span>Current: <strong>{chartData[chartData.length - 1].rating}</strong></span>
-              <span>Peak: <strong>{Math.max(...chartData.map(d => d.rating))}</strong></span>
-              <span>Change: <strong style={{
-                color: (chartData[chartData.length - 1].rating - chartData[0].rating) >= 0 ? '#27ae60' : '#e74c3c'
-              }}>
-                {chartData[chartData.length - 1].rating - chartData[0].rating > 0 ? '+' : ''}
-                {chartData[chartData.length - 1].rating - chartData[0].rating}
-              </strong></span>
-            </div>
-          )}
+          <div style={styles.chartSummary}>
+            <span>First: <strong>{chartData[0].rating}</strong></span>
+            <span>Current: <strong>{chartData[chartData.length - 1].rating}</strong></span>
+            <span>Peak: <strong>{peakRating}</strong></span>
+            <span>Change: <strong style={{
+              color: (chartData[chartData.length - 1].rating - chartData[0].rating) >= 0 ? '#27ae60' : '#e74c3c'
+            }}>
+              {chartData[chartData.length - 1].rating - chartData[0].rating > 0 ? '+' : ''}
+              {chartData[chartData.length - 1].rating - chartData[0].rating}
+            </strong></span>
+          </div>
         </div>
       )}
 
@@ -193,6 +234,41 @@ export default function ProfilePage() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+interface ChartDataPoint {
+  date: string;
+  tournament: string;
+  rating: number;
+  ratingBefore: number | null;
+  placement: number;
+  grade: string;
+  won: number;
+  lost: number;
+  city?: string;
+}
+
+function RatingTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: ChartDataPoint }> }) {
+  if (!active || !payload?.[0]) return null;
+  const d = payload[0].payload;
+  const delta = d.ratingBefore != null ? d.rating - d.ratingBefore : null;
+  return (
+    <div style={styles.tooltip}>
+      <p style={{ fontWeight: 600, marginBottom: 2, color: 'var(--slate)' }}>{d.tournament}</p>
+      <p style={{ fontSize: 11, color: '#999', marginBottom: 6 }}>{d.date} &middot; {d.city}</p>
+      <div style={{ display: 'flex', gap: 12, fontSize: 12 }}>
+        <span>Rating: <strong>{d.rating}</strong></span>
+        {delta != null && (
+          <span style={{ color: delta > 0 ? '#27ae60' : delta < 0 ? '#e74c3c' : '#999', fontWeight: 600 }}>
+            ({delta > 0 ? '+' : ''}{delta})
+          </span>
+        )}
+      </div>
+      <p style={{ fontSize: 11, color: '#999', marginTop: 4 }}>
+        Place: #{d.placement} &middot; W/L: {d.won}/{d.lost} &middot; {d.grade}
+      </p>
     </div>
   );
 }
@@ -271,6 +347,7 @@ const styles: Record<string, React.CSSProperties> = {
   chartContainer: {
     background: 'var(--card-bg)', borderRadius: 14, padding: '16px 8px',
     boxShadow: '0 1px 4px rgba(0,0,0,0.04)', border: '1px solid var(--border)',
+    position: 'relative' as const,
   },
   chartSummary: {
     display: 'flex', justifyContent: 'space-around', marginTop: 12,

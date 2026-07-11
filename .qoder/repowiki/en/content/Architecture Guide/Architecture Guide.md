@@ -17,9 +17,9 @@
 
 ## Update Summary
 **Changes Made**
-- Updated agentic chat architecture documentation with comprehensive ReAct pattern implementation details
-- Added detailed OpenRouter tool calling system with five core EGD tools for Go analytics
-- Enhanced EGD GraphQL API integration layer with caching strategy and error handling
+- Enhanced agentic chat architecture documentation with comprehensive ReAct pattern implementation details
+- Added detailed OpenRouter native tool calling system with five core EGD tools for Go analytics
+- Updated EGD GraphQL API integration layer with caching strategy and error handling
 - Documented complete backend/frontend component responsibilities and data flow patterns
 - Added new architectural diagrams showing agentic workflow and tool execution cycles
 - Updated cross-cutting concerns documentation for AI-powered features and external service integrations
@@ -40,7 +40,7 @@
 13. [Conclusion](#conclusion)
 
 ## Introduction
-This guide describes the modern layered architecture of GoNow, featuring a React frontend, FastAPI backend, EGD (European Go Database) integration, and AI-powered agentic chat assistant. The system implements separation of concerns through service-oriented design, MVC-inspired structure, and microservice-like boundaries between frontend and backend components. It explains how HTTP requests flow through the complete stack from React components to external APIs and back to user interfaces, with special emphasis on the agentic chat system that uses ReAct patterns and tool calling capabilities.
+This guide describes the modern layered architecture of GoNow, featuring a React frontend, FastAPI backend, EGD (European Go Database) integration, and AI-powered agentic chat assistant. The system implements separation of concerns through service-oriented design, MVC-inspired structure, and microservice-like boundaries between frontend and backend components. It explains how HTTP requests flow through the complete stack from React components to external APIs and back to user interfaces, with special emphasis on the agentic chat system that uses ReAct patterns and native tool calling capabilities via OpenRouter.
 
 ## Project Structure
 The GoNow application follows a modern full-stack architecture with clear separation between frontend and backend:
@@ -102,7 +102,7 @@ The GoNow architecture consists of several key layers with distinct responsibili
 
 ### External Integrations
 - **EGD Client**: GraphQL API client with caching and error handling for European Go Database
-- **AI Agent**: Agentic chat system with ReAct pattern implementation and tool calling via OpenRouter
+- **AI Agent**: Agentic chat system with ReAct pattern implementation and native tool calling via OpenRouter
 
 **Section sources**
 - [main.py:14-31](file://backend/app/main.py#L14-L31)
@@ -144,7 +144,7 @@ React-->>User : "Updated UI"
 ## Agentic Chat System Architecture
 
 ### ReAct Pattern Implementation
-The AI chat assistant implements a sophisticated ReAct (Reasoning and Acting) pattern with agentic tool calling capabilities:
+The AI chat assistant implements a sophisticated ReAct (Reasoning and Acting) pattern with agentic tool calling capabilities using OpenRouter's native function calling:
 
 ```mermaid
 sequenceDiagram
@@ -181,17 +181,17 @@ ChatRouter-->>ChatWidget : "ChatResponse"
 ChatWidget-->>User : "Display response"
 ```
 
-**New** Comprehensive AI chat architecture showing agentic workflow with ReAct pattern, tool calling capabilities, and EGD integration.
+**New** Comprehensive AI chat architecture showing agentic workflow with ReAct pattern, native tool calling capabilities, and EGD integration.
 
 ### Agentic Loop Mechanics
-The chat agent implements a sophisticated loop mechanism:
+The chat agent implements a sophisticated loop mechanism with native tool calling:
 
 1. **Initial Request**: Send user message with system prompt and available tools to OpenRouter
-2. **Tool Detection**: Check if LLM responds with tool_calls array
-3. **Tool Execution**: Execute requested tools and collect results
-4. **Context Enhancement**: Feed tool results back to LLM for reasoning
+2. **Tool Detection**: Check if LLM responds with tool_calls array using native function calling
+3. **Tool Execution**: Execute requested tools through execute_tool dispatcher and collect results
+4. **Context Enhancement**: Feed tool results back to LLM for reasoning and next steps
 5. **Iteration Control**: Limit iterations to prevent infinite loops (default: 3)
-6. **Fallback Strategy**: Force text response if max iterations reached
+6. **Fallback Strategy**: Force text response if max iterations reached by removing tools parameter
 
 **Section sources**
 - [chat_agent.py:30-154](file://backend/app/services/chat_agent.py#L30-L154)
@@ -290,7 +290,7 @@ The ChatWidget component provides an interactive AI assistant interface:
 ## Tool Calling System
 
 ### Available EGD Tools
-The system supports five core tools for Go analytics through function calling:
+The system supports five core tools for Go analytics through OpenRouter's native function calling:
 
 1. **search_player**: Find players by name or PIN with fuzzy matching
 2. **get_player_details**: Retrieve detailed player information including biography and stats
@@ -299,7 +299,7 @@ The system supports five core tools for Go analytics through function calling:
 5. **compare_players**: Compare two players side-by-side with head-to-head analysis
 
 ### Tool Schema Definition
-Each tool is defined with OpenAI-compatible function schemas:
+Each tool is defined with OpenAI-compatible function schemas for native tool calling:
 
 ```mermaid
 flowchart TD
@@ -355,14 +355,14 @@ end
 subgraph "AI Flow"
 ChatRequest["Chat Request"] --> Agent["Chat Agent"]
 Agent --> LLM["OpenRouter LLM"]
-LLM --> Tools["Tool Execution"]
+LLM --> Tools["Native Tool Calling"]
 Tools --> LLM
 LLM --> ChatResponse["Chat Response"]
 end
 UI --> Router
 ```
 
-**Updated** Complete data flow diagram showing frontend, backend, and AI processing pipelines.
+**Updated** Complete data flow diagram showing frontend, backend, and AI processing pipelines with native tool calling.
 
 ### Error Handling Strategies
 - **Frontend**: Try-catch blocks with user-friendly error messages
@@ -447,8 +447,8 @@ New features can be integrated through established patterns:
 4. **Routing**: Add new routes following React Router patterns
 
 ## Conclusion
-The GoNow architecture successfully combines modern web technologies with powerful AI capabilities to create a comprehensive Go analytics platform. The layered architecture ensures maintainability and scalability while providing rich user experiences through real-time data visualization and AI-powered insights. The agentic chat system with ReAct pattern implementation enables sophisticated tool calling and multi-step reasoning capabilities.
+The GoNow architecture successfully combines modern web technologies with powerful AI capabilities to create a comprehensive Go analytics platform. The layered architecture ensures maintainability and scalability while providing rich user experiences through real-time data visualization and AI-powered insights. The agentic chat system with ReAct pattern implementation enables sophisticated native tool calling and multi-step reasoning capabilities.
 
 The system's extensibility is enhanced through well-defined interfaces and modular design patterns, allowing for easy addition of new AI tools, data sources, or frontend components. The comprehensive error handling and monitoring strategies ensure reliability and observability in production environments. The separation of concerns between frontend, backend, and external services enables independent development and deployment while maintaining clear communication protocols.
 
-The agentic architecture demonstrates advanced AI integration patterns, including tool calling, conversation management, and iterative reasoning, making it suitable for complex analytical tasks beyond simple chat interactions. The EGD integration provides robust data access with caching and error handling, ensuring reliable performance even under high load conditions.
+The agentic architecture demonstrates advanced AI integration patterns, including native tool calling, conversation management, and iterative reasoning, making it suitable for complex analytical tasks beyond simple chat interactions. The EGD integration provides robust data access with caching and error handling, ensuring reliable performance even under high load conditions.
