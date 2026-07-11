@@ -1,0 +1,1 @@
+FastAPI backend exposing player search/detail/game/tournament endpoints against the European Go Database GraphQL API, plus an agentic chat endpoint backed by OpenRouter tool calling.

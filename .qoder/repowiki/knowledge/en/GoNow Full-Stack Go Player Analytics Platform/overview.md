@@ -1,0 +1,1 @@
+Top-level monorepo wiring a React/Vite frontend and FastAPI backend around the European Go Database GraphQL API, with OpenRouter-powered agentic chat bridging both layers.

@@ -1,0 +1,1 @@
+Run with `uvicorn app.main:app --reload` from `backend/`; requires a virtual environment activated at `backend/.venv/` and a `.env` file at the repo root containing `EGD_API_TOKEN` and optionally `OPENROUTER_API_KEY`, `CHAT_MODEL`, and `CHAT_MAX_ITERATIONS`.

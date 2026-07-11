@@ -3,459 +3,323 @@
 <cite>
 **Referenced Files in This Document**
 - [README.md](file://README.md)
-- [backend/app/main.py](file://backend/app/main.py)
-- [backend/app/routers/players.py](file://backend/app/routers/players.py)
-- [backend/app/routers/chat.py](file://backend/app/routers/chat.py)
-- [backend/app/services/egd_client.py](file://backend/app/services/egd_client.py)
-- [backend/app/services/egd_tools.py](file://backend/app/services/egd_tools.py)
-- [backend/app/services/chat_agent.py](file://backend/app/services/chat_agent.py)
-- [backend/app/models/player.py](file://backend/app/models/player.py)
-- [backend/app/models/chat.py](file://backend/app/models/chat.py)
-- [frontend/src/App.tsx](file://frontend/src/App.tsx)
-- [frontend/src/api/client.ts](file://frontend/src/api/client.ts)
-- [frontend/src/pages/SearchPage.tsx](file://frontend/src/pages/SearchPage.tsx)
-- [frontend/src/components/ChatWidget.tsx](file://frontend/src/components/ChatWidget.tsx)
-- [frontend/package.json](file://frontend/package.json)
-- [Makefile](file://Makefile)
-- [docs/ARCHITECTURE.md](file://docs/ARCHITECTURE.md)
-- [docs/AGENT_DESIGN.md](file://docs/AGENT_DESIGN.md)
+- [ARCHITECTURE.md](file://docs/ARCHITECTURE.md)
+- [AGENT_DESIGN.md](file://docs/AGENT_DESIGN.md)
+- [main.py](file://backend/app/main.py)
+- [requirements.txt](file://backend/requirements.txt)
+- [package.json](file://frontend/package.json)
+- [App.tsx](file://frontend/src/App.tsx)
+- [client.ts](file://frontend/src/api/client.ts)
+- [SearchPage.tsx](file://frontend/src/pages/SearchPage.tsx)
+- [ProfilePage.tsx](file://frontend/src/pages/ProfilePage.tsx)
+- [FavoritesPage.tsx](file://frontend/src/pages/FavoritesPage.tsx)
+- [useFavorites.ts](file://frontend/src/hooks/useFavorites.ts)
+- [ChatWidget.tsx](file://frontend/src/components/ChatWidget.tsx)
+- [chat.py](file://backend/app/routers/chat.py)
+- [chat_agent.py](file://backend/app/services/chat_agent.py)
+- [egd_client.py](file://backend/app/services/egd_client.py)
 </cite>
 
-## Update Summary
-**Changes Made**
-- Updated introduction to emphasize the comprehensive agentic AI chat system with native tool calling capabilities
-- Enhanced architecture diagrams to show the complete agentic flow with five core EGD tools
-- Added detailed API endpoint information clarifying that /api/chat uses 'agentic AI chat (tool calling)'
-- Expanded service layer documentation to include the complete backend structure with tool orchestration
-- Updated technology stack to highlight OpenRouter integration and agentic capabilities
-- Added comprehensive examples demonstrating the agentic data flow from HTTP requests through tool calling to final responses
-
 ## Table of Contents
-1. [Introduction](#introduction)
-2. [Project Structure](#project-structure)
-3. [Core Components](#core-components)
-4. [Architecture Overview](#architecture-overview)
-5. [Detailed Component Analysis](#detailed-component-analysis)
-6. [Frontend Architecture](#frontend-architecture)
-7. [Backend Service Layer](#backend-service-layer)
-8. [Agentic Chat System](#agentic-chat-system)
-9. [Data Flow Examples](#data-flow-examples)
-10. [Development Workflow](#development-workflow)
-11. [Dependency Analysis](#dependency-analysis)
-12. [Performance Considerations](#performance-considerations)
-13. [Troubleshooting Guide](#troubleshooting-guide)
-14. [Conclusion](#conclusion)
+1. Introduction
+2. Project Structure
+3. Core Components
+4. Architecture Overview
+5. Detailed Component Analysis
+6. Dependency Analysis
+7. Performance Considerations
+8. Troubleshooting Guide
+9. Conclusion
 
 ## Introduction
-GoNow is a comprehensive full-stack web application designed to track European Go players' progress over time, combining a modern React frontend with a Python FastAPI backend. The application provides comprehensive player search capabilities, detailed profile views with rating evolution charts, favorites management, and an integrated **agentic AI chat assistant powered by OpenRouter with native tool calling capabilities**.
+GoNow is a full-stack web application that helps Go players explore and track European Go player progress over time. It connects to the European Go Database (EGD) via GraphQL, provides an intuitive search and profile experience with rating evolution charts, supports local favorites management, and includes an AI-powered chat assistant that can autonomously look up real player data through tool calling. The platform serves both casual Go players who want quick insights and serious tournament participants who need detailed performance tracking and comparisons.
 
-The project emphasizes a layered architecture and service-oriented design, providing clear separation of concerns across routing, business logic, and data access layers. It follows an MVC-inspired structure where routers handle HTTP concerns, services encapsulate business rules and external API integrations, and models represent domain data and persistence interactions.
+Key goals:
+- Make EGD data accessible and actionable for all skill levels
+- Provide fast, typo-tolerant player search and rich profile visualizations
+- Enable persistent favorites without requiring accounts or servers
+- Offer an agentic chat assistant grounded in live EGD data
 
-This foundation supports building robust APIs by:
-- Enforcing separation of concerns between request handling, business logic, and data access
-- Encouraging reusable service components that can be composed across endpoints
-- Providing a predictable request flow from HTTP entry points through routers to services and models
-- Integrating external APIs (EGD GraphQL and OpenRouter) through dedicated service layers
-- Maintaining clean client-server communication with TypeScript type safety
-- Implementing **agentic AI capabilities with native tool calling** for autonomous data retrieval and analysis
+Unique value proposition:
+- A Go-themed, privacy-friendly interface focused on Europe’s Go community
+- Real-time, server-side access to EGD data behind a secure backend proxy
+- Native tool calling so the assistant reasons about when to query data and returns concise, contextual answers
 
-**Updated** The application now features a sophisticated agentic chat system that allows the AI to autonomously call EGD tools for real-time player data retrieval, comparison, and analysis without requiring explicit user commands.
+Target audience:
+- Casual players seeking quick stats and learning resources
+- Club members and coaches monitoring player development
+- Tournament participants analyzing trends and comparing peers
 
 **Section sources**
-- [README.md:1-23](file://README.md#L1-L23)
-- [docs/ARCHITECTURE.md:1-42](file://docs/ARCHITECTURE.md#L1-L42)
+- [README.md:1-20](file://README.md#L1-L20)
+- [ARCHITECTURE.md:1-20](file://docs/ARCHITECTURE.md#L1-L20)
 
 ## Project Structure
-At a high level, GoNow is organized into two main applications with feature-focused directories:
+The repository is organized into frontend and backend layers with clear separation of concerns:
+- Frontend: React 19 + TypeScript app built with Vite, routing, state caching, and Recharts visualizations
+- Backend: FastAPI service exposing REST endpoints, proxying EGD GraphQL calls, and orchestrating OpenRouter tool-calling for chat
+- Shared docs: Architecture and agent design references
 
 ```mermaid
 graph TB
-subgraph "Full-Stack Application"
-Frontend["React Frontend<br/>TypeScript + Vite"]
-Backend["FastAPI Backend<br/>Python 3.14"]
-subgraph "Frontend Components"
-Pages["Pages<br/>Search, Profile, Favorites"]
-Components["Components<br/>ChatWidget, Navbar"]
-Hooks["Hooks<br/>useFavorites"]
-API["API Client<br/>Axios + Types"]
-end
-subgraph "Backend Services"
-Routers["Routers<br/>HTTP Endpoints"]
-Services["Services<br/>Business Logic"]
-Models["Models<br/>Pydantic Schemas"]
-Tools["Tools<br/>OpenAI Function Calling"]
-Agent["Agent<br/>Tool Orchestration"]
-end
-External["External APIs<br/>EGD GraphQL + OpenRouter"]
-end
-Frontend --> Pages
-Frontend --> Components
-Frontend --> Hooks
-Frontend --> API
-API --> Backend
-Backend --> Routers
-Routers --> Services
-Services --> Models
-Services --> Tools
-Tools --> Agent
-Agent --> External
+FE["Frontend<br/>React 19 + Vite"] --> BE["Backend<br/>FastAPI"]
+BE --> EGD["EGD GraphQL API<br/>europeangodatabase.eu"]
+BE --> OR["OpenRouter API<br/>LLM + Tool Calling"]
 ```
 
-**Updated** The project now includes both frontend and backend applications with clear separation of concerns, modern development practices, and advanced agentic AI capabilities with native tool calling for autonomous data retrieval.
+**Diagram sources**
+- [ARCHITECTURE.md:7-33](file://docs/ARCHITECTURE.md#L7-L33)
+- [README.md:26-53](file://README.md#L26-L53)
 
 **Section sources**
 - [README.md:57-90](file://README.md#L57-L90)
-- [docs/ARCHITECTURE.md:43-81](file://docs/ARCHITECTURE.md#L43-L81)
+- [ARCHITECTURE.md:43-81](file://docs/ARCHITECTURE.md#L43-L81)
 
 ## Core Components
-- **Layered Architecture**: The codebase separates responsibilities into distinct layers—routing, service, model, and tool—to improve testability, readability, and scalability across both frontend and backend.
-- **Service Layer Pattern**: Business logic is centralized in services, making it easier to reuse logic across multiple routes and to unit-test core behavior independently of HTTP concerns.
-- **MVC-Inspired Structure**: Routers act as controllers that translate HTTP requests into service calls; models represent domain entities and data access; views are implemented as React components.
-- **Modular Design**: Each directory represents a cohesive module, encouraging small, focused packages that can evolve independently.
-- **External API Integration**: Dedicated service classes handle communication with external APIs (EGD GraphQL and OpenRouter) with caching and error handling.
-- **Type Safety**: Full TypeScript integration ensures type consistency between frontend and backend through shared interfaces and Pydantic models.
-- **Agentic AI Capabilities**: Native tool calling allows the AI to autonomously call EGD tools for real-time data retrieval and analysis without explicit orchestration frameworks.
+- Player Search: Typo-tolerant search by name or PIN with debounced queries and cached results
+- Player Profiles: Detailed info including photo, grade, rating, proposed grade, and tournament history
+- Rating Evolution Charts: Interactive charts showing rating changes across tournaments
+- Favorites Management: Local storage-backed list of tracked players
+- Agentic Chat Assistant: Floating widget that uses OpenRouter tool calling to fetch and summarize real EGD data
 
-These patterns collectively support building RESTful APIs with clear boundaries, predictable data flow, and straightforward extension points for new features.
+Technology stack highlights:
+- Frontend: React 19, TypeScript, Vite, React Router, Recharts, TanStack Query
+- Backend: Python 3.14, FastAPI, httpx, Pydantic
+- Data Source: EGD GraphQL API v2026.02
+- AI: OpenRouter API with native tool calling
 
 **Section sources**
-- [backend/app/main.py:14-31](file://backend/app/main.py#L14-L31)
-- [frontend/src/App.tsx:18-36](file://frontend/src/App.tsx#L18-L36)
+- [README.md:14-23](file://README.md#L14-L23)
+- [package.json:12-19](file://frontend/package.json#L12-L19)
+- [requirements.txt:1-6](file://backend/requirements.txt#L1-L6)
+- [ARCHITECTURE.md:35-41](file://docs/ARCHITECTURE.md#L35-L41)
 
 ## Architecture Overview
-The following sequence illustrates the expected data flow for typical REST endpoints and the agentic chat system in the full-stack application:
+GoNow follows a simple, robust architecture:
+- The frontend communicates with the backend via HTTP
+- The backend proxies all EGD GraphQL requests to keep tokens server-side
+- The chat route delegates to an agent loop that uses OpenRouter’s native tool calling to decide when to call EGD tools, execute them server-side, and return final answers
 
 ```mermaid
 sequenceDiagram
-participant User as "User Browser"
-participant React as "React Frontend"
-participant Router as "FastAPI Router"
-participant Service as "Service Layer"
-participant Model as "Pydantic Model"
-participant Tool as "EGD Tools"
-participant Agent as "Chat Agent"
-participant EGD as "EGD GraphQL API"
-participant OpenRouter as "OpenRouter AI"
-User->>React : "Search for player"
-React->>Router : "GET /api/search?q=..."
-Router->>Service : "search_players(query)"
-Service->>EGD : "GraphQL query"
-EGD-->>Service : "Player data"
-Service->>Model : "Validate & transform"
-Model-->>Service : "Validated data"
-Service-->>Router : "Response data"
-Router-->>React : "JSON response"
-React-->>User : "Display results"
-Note over User,OpenRouter : "Agentic Chat Flow"
-User->>React : "Send chat message"
-React->>Router : "POST /api/chat"
-Router->>Agent : "agent_chat(message)"
-Agent->>OpenRouter : "LLM with tool schemas"
-OpenRouter-->>Agent : "Tool call decision"
-Agent->>Tool : "execute_tool(function)"
-Tool->>Service : "EGD operations"
-Service->>EGD : "GraphQL queries"
-EGD-->>Service : "Real player data"
-Service-->>Tool : "Formatted results"
-Tool-->>Agent : "Tool execution result"
-Agent->>OpenRouter : "Tool result feedback"
-OpenRouter-->>Agent : "Final answer"
-Agent-->>Router : "Chat response"
-Router-->>React : "AI reply"
-React-->>User : "Display AI response"
+participant U as "User"
+participant FE as "Frontend"
+participant BE as "Backend (FastAPI)"
+participant AG as "Chat Agent"
+participant OR as "OpenRouter"
+participant EGD as "EGD GraphQL"
+U->>FE : "Ask question / search player"
+FE->>BE : "POST /api/chat or GET /api/search"
+BE->>AG : "agent_chat(message, history, context)"
+AG->>OR : "Send messages + tool schemas"
+OR-->>AG : "tool_calls or final answer"
+alt "Tool calls requested"
+AG->>EGD : "Execute tool (search_player/get_player_details...)"
+EGD-->>AG : "Data"
+AG->>OR : "Feed tool results back"
+OR-->>AG : "Final answer"
+else "No tool calls"
+OR-->>AG : "Final answer"
+end
+AG-->>BE : "Reply + metadata"
+BE-->>FE : "Response"
+FE-->>U : "Render UI"
 ```
 
-**Updated** The architecture now includes both EGD GraphQL API integration and OpenRouter AI chat functionality with agentic tool calling capabilities, proper caching, and error handling.
-
 **Diagram sources**
-- [backend/app/routers/players.py:8-40](file://backend/app/routers/players.py#L8-L40)
-- [backend/app/services/egd_client.py:44-70](file://backend/app/services/egd_client.py#L44-L70)
-- [backend/app/routers/chat.py:9-24](file://backend/app/routers/chat.py#L9-L24)
-- [backend/app/services/chat_agent.py:30-154](file://backend/app/services/chat_agent.py#L30-L154)
+- [chat_agent.py:30-154](file://backend/app/services/chat_agent.py#L30-L154)
+- [chat.py:9-24](file://backend/app/routers/chat.py#L9-L24)
+- [README.md:26-53](file://README.md#L26-L53)
 
 ## Detailed Component Analysis
 
-### Backend Routers
-Responsibilities:
-- Define HTTP endpoints and map them to service methods
-- Parse and validate incoming request parameters using FastAPI's Query and Path parameters
-- Transform service responses into appropriate HTTP status codes and payloads
-- Handle CORS configuration for cross-origin requests from the React frontend
-- Support agentic chat endpoints with tool calling orchestration
+### Frontend Application Shell
+- Provides routing, global query client configuration, and shared navigation
+- Mounts pages for search, player profiles, and favorites
+- Includes a floating chat widget available across routes
 
-Expected behavior:
-- Keep routing thin by delegating business logic to services
-- Centralize error mapping and response formatting at this layer
-- Implement proper exception handling and HTTP status codes
-- Support both traditional REST endpoints and AI chat functionality
+```mermaid
+flowchart TD
+Start(["App Entry"]) --> Router["Routes:<br/>/, /player/:pin, /favorites"]
+Router --> Search["SearchPage"]
+Router --> Profile["ProfilePage"]
+Router --> Favs["FavoritesPage"]
+Router --> Chat["ChatWidget (global)"]
+```
 
-**Section sources**
-- [backend/app/routers/players.py:1-107](file://backend/app/routers/players.py#L1-L107)
-- [backend/app/routers/chat.py:1-95](file://backend/app/routers/chat.py#L1-L95)
-
-### Backend Services
-Responsibilities:
-- Implement business rules and workflows
-- Orchestrate calls to one or more models and external APIs
-- Handle cross-cutting concerns such as validation, transformation, caching, and transactional boundaries
-- Manage authentication tokens and API rate limiting
-- Provide EGD GraphQL API client with in-memory caching
-
-Expected behavior:
-- Remain independent of HTTP details
-- Be easily unit-tested with mock external APIs
-- Implement efficient caching strategies to reduce external API calls
-- Support both direct API calls and tool-based operations
+**Diagram sources**
+- [App.tsx:18-36](file://frontend/src/App.tsx#L18-L36)
 
 **Section sources**
-- [backend/app/services/egd_client.py:11-197](file://backend/app/services/egd_client.py#L11-L197)
+- [App.tsx:1-37](file://frontend/src/App.tsx#L1-37)
 
-### Backend Models
-Responsibilities:
-- Represent domain entities and schemas using Pydantic
-- Provide validation and serialization for API requests/responses
-- Ensure type safety across the entire application stack
-- Define consistent interfaces for data retrieval and mutation
+### Player Search
+- Debounced input reduces unnecessary network calls
+- Uses TanStack Query for caching and error states
+- Displays cards with grade stones, flags, ratings, and favorite toggles
 
-Expected behavior:
-- Expose clear methods for CRUD operations
-- Encapsulate persistence-specific logic
-- Maintain backward compatibility with API consumers
+```mermaid
+flowchart TD
+Input["User types query"] --> Debounce["Debounce 300ms"]
+Debounce --> Enabled{"Length >= 2?"}
+Enabled -- "No" --> Idle["Wait"]
+Enabled -- "Yes" --> Query["TanStack Query<br/>GET /api/search?q=..."]
+Query --> Results["Render grid of player cards"]
+Results --> FavToggle["Toggle favorite (localStorage)"]
+```
 
-**Section sources**
-- [backend/app/models/player.py:6-60](file://backend/app/models/player.py#L6-L60)
-- [backend/app/models/chat.py:1-21](file://backend/app/models/chat.py#L1-L21)
-
-### Frontend Components
-Responsibilities:
-- Render user interfaces using React components
-- Handle user interactions and state management
-- Make API calls through the typed API client
-- Manage local storage for favorites and preferences
-- Provide floating chat interface with Go-themed styling
-
-Expected behavior:
-- Follow React best practices with functional components and hooks
-- Implement proper loading states and error handling
-- Maintain responsive design across devices
-- Support real-time chat interactions with typing indicators
+**Diagram sources**
+- [SearchPage.tsx:13-28](file://frontend/src/pages/SearchPage.tsx#L13-L28)
+- [client.ts:59-62](file://frontend/src/api/client.ts#L59-L62)
+- [useFavorites.ts:6-18](file://frontend/src/hooks/useFavorites.ts#L6-L18)
 
 **Section sources**
-- [frontend/src/pages/SearchPage.tsx:7-240](file://frontend/src/pages/SearchPage.tsx#L7-L240)
-- [frontend/src/components/ChatWidget.tsx:4-240](file://frontend/src/components/ChatWidget.tsx#L4-L240)
+- [SearchPage.tsx:1-148](file://frontend/src/pages/SearchPage.tsx#L1-148)
+- [client.ts:59-62](file://frontend/src/api/client.ts#L59-L62)
 
-### Frontend API Client
-Responsibilities:
-- Provide typed API functions using Axios
-- Handle request/response transformations
-- Manage base URL configuration and error handling
-- Define TypeScript interfaces for all API contracts
-- Support both REST endpoints and chat functionality
+### Player Profile and Rating Evolution
+- Fetches detailed player data and builds chart-ready dataset
+- Renders interactive Recharts composed chart with peak reference line and tooltips
+- Shows tournament history table with deltas and placement
 
-Expected behavior:
-- Maintain type safety between frontend and backend
-- Implement retry logic and timeout handling
-- Provide consistent error handling across all API calls
-- Support streaming responses for chat functionality
+```mermaid
+flowchart TD
+Pin["URL param :pin"] --> Fetch["GET /api/player/:pin"]
+Fetch --> Transform["Map to chart points<br/>filter + round ratings"]
+Transform --> Chart["Recharts ComposedChart"]
+Fetch --> Table["Tournament History Table"]
+Chart --> Summary["First / Current / Peak / Change"]
+```
 
-**Section sources**
-- [frontend/src/api/client.ts:1-86](file://frontend/src/api/client.ts#L1-L86)
-
-## Frontend Architecture
-The React frontend follows modern development patterns with TypeScript, Vite build tooling, and component-based architecture:
-
-### Key Frontend Technologies
-- **React 19**: Latest version with modern hooks and concurrent features
-- **TypeScript**: Full type safety across the application
-- **Vite**: Fast development server and optimized builds
-- **React Router**: Client-side routing with nested routes
-- **TanStack Query**: Server state management with caching and background updates
-- **Recharts**: Interactive charts for rating evolution visualization
-- **Axios**: HTTP client with TypeScript support
-
-### Component Structure
-- **Pages**: Route-level components (SearchPage, ProfilePage, FavoritesPage)
-- **Components**: Reusable UI elements (ChatWidget, Navbar)
-- **Hooks**: Custom logic (useFavorites for localStorage management)
-- **API**: Typed client functions with interface definitions
+**Diagram sources**
+- [ProfilePage.tsx:16-20](file://frontend/src/pages/ProfilePage.tsx#L16-L20)
+- [ProfilePage.tsx:44-58](file://frontend/src/pages/ProfilePage.tsx#L44-L58)
+- [client.ts:64-67](file://frontend/src/api/client.ts#L64-L67)
 
 **Section sources**
-- [frontend/package.json:12-28](file://frontend/package.json#L12-L28)
-- [frontend/src/App.tsx:18-36](file://frontend/src/App.tsx#L18-L36)
+- [ProfilePage.tsx:1-239](file://frontend/src/pages/ProfilePage.tsx#L1-L239)
 
-## Backend Service Layer
-The backend implements a robust service layer pattern with external API integration and agentic capabilities:
+### Favorites Management
+- Persists favorites in localStorage with a custom hook
+- Supports add/remove/toggle and presence checks
+- Used across search and profile pages
 
-### EGD Client Service
-The `EGDClient` class handles all communication with the European Go Database GraphQL API:
-- Implements in-memory caching with configurable TTL (5 minutes)
-- Provides methods for player search, profile retrieval, and game history
-- Handles GraphQL query construction and response parsing
-- Manages authentication tokens and error scenarios
+```mermaid
+classDiagram
+class UseFavorites {
++favorites : PlayerSummary[]
++addFavorite(player)
++removeFavorite(pin)
++isFavorite(pin) : bool
++toggleFavorite(player)
+}
+class SearchPage
+class ProfilePage
+class FavoritesPage
+SearchPage --> UseFavorites : "uses"
+ProfilePage --> UseFavorites : "uses"
+FavoritesPage --> UseFavorites : "uses"
+```
 
-### Tool Definition Service
-The `EGD_TOOLS` module defines OpenAI-compatible function schemas for agentic operations:
-- Defines tool schemas for search_player, get_player_details, compare_players, etc.
-- Provides execute_tool function for runtime tool invocation
-- Maps LLM tool calls to actual EGD operations
-- Handles parameter validation and error scenarios
-
-### Chat Agent Service
-The `agent_chat` function orchestrates the agentic conversation loop:
-- Manages OpenRouter API communication with tool calling
-- Implements iterative tool execution with max iteration limits
-- Maintains conversation context and history
-- Provides fallback mechanisms for final text responses
-
-**Section sources**
-- [backend/app/services/egd_client.py:11-197](file://backend/app/services/egd_client.py#L11-L197)
-- [backend/app/services/egd_tools.py:1-212](file://backend/app/services/egd_tools.py#L1-L212)
-- [backend/app/services/chat_agent.py:30-154](file://backend/app/services/chat_agent.py#L30-L154)
-
-## Agentic Chat System
-The agentic chat system leverages OpenRouter's native tool calling capabilities to provide autonomous AI assistance:
-
-### Tool Calling Architecture
-- **Native Integration**: Uses OpenRouter's built-in function calling without additional orchestration frameworks
-- **Autonomous Decision Making**: LLM determines when and how to call EGD tools based on user queries
-- **Iterative Processing**: Supports multiple tool calls per conversation turn with maximum iteration limits
-- **Context Management**: Maintains conversation history and page context for relevant responses
-
-### Available Tools
-Five core EGD tools are available for the AI agent:
-- **search_player**: Search for Go players by name or PIN
-- **get_player_details**: Retrieve comprehensive player profiles with statistics
-- **get_player_rating_history**: Access rating evolution data over time
-- **get_player_games**: Fetch recent game history with opponents and results
-- **compare_players**: Compare two players side-by-side with statistical analysis
-
-### Error Handling and Fallbacks
-- Graceful degradation when API keys are missing
-- Maximum iteration limits prevent infinite loops
-- Fallback mechanism forces final text response after tool exhaustion
-- Comprehensive error logging and user-friendly error messages
+**Diagram sources**
+- [useFavorites.ts:6-48](file://frontend/src/hooks/useFavorites.ts#L6-L48)
+- [SearchPage.tsx:10-12](file://frontend/src/pages/SearchPage.tsx#L10-L12)
+- [ProfilePage.tsx:14](file://frontend/src/pages/ProfilePage.tsx#L14)
+- [FavoritesPage.tsx:4-6](file://frontend/src/pages/FavoritesPage.tsx#L4-L6)
 
 **Section sources**
-- [backend/app/services/chat_agent.py:1-154](file://backend/app/services/chat_agent.py#L1-L154)
-- [backend/app/services/egd_tools.py:1-212](file://backend/app/services/egd_tools.py#L1-L212)
+- [useFavorites.ts:1-49](file://frontend/src/hooks/useFavorites.ts#L1-L49)
+- [FavoritesPage.tsx:1-63](file://frontend/src/pages/FavoritesPage.tsx#L1-L63)
 
-## Data Flow Examples
+### Agentic Chat Assistant
+- Floating widget sends user messages and maintains conversation history
+- Backend agent loop uses OpenRouter’s native tool calling to decide when to call EGD tools
+- Tools are executed server-side; results are fed back until a final answer is produced
 
-### Player Search Flow
-Consider a GET request to search for players:
-- The client sends an HTTP GET to `/api/search?q=player_name`
-- The router validates query parameters and delegates to the EGD client service
-- The service queries the EGD GraphQL API with cached results when available
-- The response is transformed into a standardized format
-- The router maps the result to an HTTP 200 response with JSON payload
+```mermaid
+sequenceDiagram
+participant W as "ChatWidget"
+participant C as "Client.sendChatMessage"
+participant R as "FastAPI /api/chat"
+participant A as "agent_chat"
+participant T as "execute_tool"
+participant G as "EGD Client"
+participant O as "OpenRouter"
+W->>C : "message, context, history"
+C->>R : "POST /api/chat"
+R->>A : "agent_chat(message, history, context)"
+A->>O : "messages + tools"
+O-->>A : "tool_calls or reply"
+alt "tool_calls"
+A->>T : "dispatch(fn_name, args)"
+T->>G : "EGD GraphQL calls"
+G-->>T : "data"
+T-->>A : "result"
+A->>O : "tool results"
+O-->>A : "final reply"
+else "no tool_calls"
+O-->>A : "final reply"
+end
+A-->>R : "reply + model + tool_calls"
+R-->>W : "response"
+```
 
-### Player Profile Flow
-For retrieving detailed player information:
-- The client navigates to `/player/{pin}` route
-- The page component fetches player data using TanStack Query
-- The backend retrieves player details and rating history from EGD
-- Rating evolution data is extracted and sorted by date
-- The frontend renders interactive charts using Recharts
-
-### Agentic Chat Flow
-For AI-powered insights with tool calling:
-- The user sends a message through the floating chat widget
-- The frontend maintains conversation history locally
-- The backend orchestrates the agent loop with OpenRouter
-- LLM decides to call EGD tools for real-time data retrieval
-- Backend executes tools via egd_tools.py and feeds results back
-- LLM processes tool results and generates final answer
-- The chat widget displays the response with typing indicators
-
-**Section sources**
-- [backend/app/routers/players.py:8-40](file://backend/app/routers/players.py#L8-L40)
-- [frontend/src/pages/SearchPage.tsx:18-23](file://frontend/src/pages/SearchPage.tsx#L18-L23)
-- [backend/app/routers/chat.py:9-24](file://backend/app/routers/chat.py#L9-L24)
-- [backend/app/services/chat_agent.py:30-154](file://backend/app/services/chat_agent.py#L30-L154)
-
-## Development Workflow
-The project provides comprehensive development orchestration through Makefile commands:
-
-### Quick Start Commands
-- **make install**: Create virtual environment and install all dependencies (both backend and frontend)
-- **make dev**: Start both backend (:8000) and frontend (:5173) servers simultaneously
-- **make stop**: Kill all running GoNow development servers
-- **make build**: Build frontend for production deployment
-
-### Individual Component Development
-- **make dev-be**: Start backend only with hot reload
-- **make dev-fe**: Start frontend only with development server
-- **make install-be**: Install backend dependencies into Python virtual environment
-- **make install-fe**: Install frontend npm dependencies
-
-### Environment Configuration
-All configuration lives in `backend/.env`:
-- **EGD_API_TOKEN**: Required for European Go Database access
-- **OPENROUTER_API_KEY**: Optional for AI chat functionality
-- **CHAT_MODEL**: Configurable AI model (default: google/gemini-2.0-flash-001)
-- **CHAT_MAX_ITERATIONS**: Maximum tool-calling iterations per chat turn
+**Diagram sources**
+- [ChatWidget.tsx:16-37](file://frontend/src/components/ChatWidget.tsx#L16-L37)
+- [client.ts:74-85](file://frontend/src/api/client.ts#L74-L85)
+- [chat.py:9-24](file://backend/app/routers/chat.py#L9-L24)
+- [chat_agent.py:30-154](file://backend/app/services/chat_agent.py#L30-L154)
+- [egd_client.py:11-42](file://backend/app/services/egd_client.py#L11-L42)
 
 **Section sources**
-- [Makefile:1-54](file://Makefile#L1-L54)
-- [README.md:139-154](file://README.md#L139-L154)
+- [ChatWidget.tsx:1-150](file://frontend/src/components/ChatWidget.tsx#L1-150)
+- [chat.py:1-25](file://backend/app/routers/chat.py#L1-L25)
+- [chat_agent.py:1-154](file://backend/app/services/chat_agent.py#L1-L154)
+- [AGENT_DESIGN.md:1-68](file://docs/AGENT_DESIGN.md#L1-L68)
 
 ## Dependency Analysis
-Conceptual dependency direction:
-- Frontend depends on backend API endpoints
-- Backend routers depend on services
-- Services depend on models and external APIs
-- Tools depend on services for EGD operations
-- Agent depends on tools for function execution
-- Models should remain independent of HTTP and routing concerns
+High-level dependencies:
+- Frontend depends on React ecosystem, Axios, TanStack Query, and Recharts
+- Backend depends on FastAPI, httpx, Pydantic, and environment-driven config
+- External services: EGD GraphQL API and OpenRouter
 
 ```mermaid
 graph LR
-Frontend["React Frontend"] --> Backend["FastAPI Backend"]
-Backend --> Routers["Routers"]
-Routers --> Services["Services"]
-Services --> Models["Pydantic Models"]
-Services --> Tools["EGD Tools"]
-Tools --> Services
-Services --> External["External APIs"]
-External --> EGD["EGD GraphQL API"]
-External --> OpenRouter["OpenRouter AI"]
+FE["Frontend (React, TS, Vite)"] --> |HTTP| BE["Backend (FastAPI)"]
+BE --> |GraphQL| EGD["EGD API"]
+BE --> |REST| OR["OpenRouter API"]
 ```
 
-**Updated** The dependency graph now includes tool and agent layers, showing the complete full-stack architecture with agentic capabilities.
-
 **Diagram sources**
-- [backend/app/main.py:29-31](file://backend/app/main.py#L29-L31)
-- [backend/app/services/egd_client.py:8](file://backend/app/services/egd_client.py#L8)
-- [backend/app/services/egd_tools.py:1-212](file://backend/app/services/egd_tools.py#L1-L212)
-
-## Performance Considerations
-- **Caching Strategy**: In-memory caching reduces EGD API calls by up to 80% for frequently accessed players
-- **Lazy Loading**: React components are loaded on-demand using React Router
-- **Query Optimization**: TanStack Query provides automatic caching, background updates, and deduplication
-- **Efficient Queries**: GraphQL queries are optimized to fetch only required fields
-- **Local Storage**: Favorites are stored locally to avoid unnecessary API calls
-- **Debounced Search**: Input debouncing prevents excessive search requests during typing
-- **Tool Call Limits**: Maximum iteration limits prevent excessive AI processing
-- **Streaming Responses**: Potential for future implementation of streaming chat responses
-
-## Troubleshooting Guide
-Common issues and strategies:
-- **CORS Errors**: Verify CORS middleware configuration allows frontend origin
-- **API Token Issues**: Check environment variables for EGD_TOKEN and OPENROUTER_API_KEY
-- **Network Requests**: Monitor browser dev tools for failed API calls and network errors
-- **State Management**: Use React DevTools to inspect component state and TanStack Query cache
-- **Type Errors**: Ensure TypeScript interfaces match backend Pydantic models
-- **Performance**: Monitor network tab for slow API responses and implement proper loading states
-- **AI Chat Issues**: Verify OpenRouter API key configuration and model availability
-- **Tool Execution**: Check EGD API token validity and network connectivity
+- [package.json:12-19](file://frontend/package.json#L12-L19)
+- [requirements.txt:1-6](file://backend/requirements.txt#L1-L6)
+- [ARCHITECTURE.md:35-41](file://docs/ARCHITECTURE.md#L35-L41)
 
 **Section sources**
-- [backend/app/main.py:20-27](file://backend/app/main.py#L20-L27)
-- [README.md:139-154](file://README.md#L139-L154)
+- [package.json:1-30](file://frontend/package.json#L1-L30)
+- [requirements.txt:1-6](file://backend/requirements.txt#L1-L6)
+
+## Performance Considerations
+- Debounced search reduces request volume
+- TanStack Query caches responses and retries minimally
+- Backend in-memory cache with TTL reduces repeated EGD calls
+- Configurable model and iteration limits balance speed and cost for chat
+
+[No sources needed since this section provides general guidance]
+
+## Troubleshooting Guide
+Common issues and resolutions:
+- Missing API keys: Ensure OPENROUTER_API_KEY and EGD_API_TOKEN are set in backend .env
+- CORS errors: Verify allowed origins include your dev frontend URL
+- Chat disabled: If no key is present, the chat returns a friendly message indicating configuration is required
+- Network timeouts: Increase timeout or check connectivity to external APIs
+
+**Section sources**
+- [main.py:20-27](file://backend/app/main.py#L20-L27)
+- [chat.py:50-55](file://backend/app/routers/chat.py#L50-L55)
+- [chat_agent.py:42-48](file://backend/app/services/chat_agent.py#L42-L48)
 
 ## Conclusion
-GoNow provides a comprehensive full-stack foundation for building modern web applications using React + FastAPI architecture with advanced agentic AI capabilities. By separating frontend and backend concerns while maintaining clear communication patterns, teams can develop features incrementally while maintaining clarity and testability. The layered architecture, service layer pattern, modular design, and agentic tool calling make it straightforward to onboard new contributors and scale the application over time.
+GoNow delivers a focused, Go-themed analytics platform tailored to the European Go community. By combining a modern React frontend, a lightweight FastAPI backend, and an agentic chat assistant powered by OpenRouter, it offers powerful yet approachable features for players at all levels. Its architecture keeps sensitive credentials server-side, leverages efficient caching, and provides a clear path for future enhancements such as expanded tooling or advanced analysis capabilities.
 
-The integration with external APIs (EGD GraphQL and OpenRouter) demonstrates real-world patterns for third-party service integration, while the TypeScript-first approach ensures type safety across the entire stack. The agentic chat system showcases cutting-edge AI capabilities with native tool calling, enabling autonomous data retrieval and analysis. This foundation supports building robust, maintainable applications that can evolve with changing requirements and leverage the latest AI advancements.
-
-**Updated** The addition of the agentic chat system with five core EGD tools transforms GoNow from a simple data tracking application into an intelligent analytics platform that can autonomously retrieve, analyze, and present Go player data through natural language conversations.
+[No sources needed since this section summarizes without analyzing specific files]

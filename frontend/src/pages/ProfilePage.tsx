@@ -13,11 +13,15 @@ export default function ProfilePage() {
   const navigate = useNavigate();
   const { toggleFavorite, isFavorite } = useFavorites();
 
-  const { data: player, isLoading, isError } = useQuery({
+  const { data: player, isLoading, isError, error } = useQuery({
     queryKey: ['player', pin],
     queryFn: () => getPlayer(Number(pin)),
     enabled: !!pin,
   });
+
+  const errorMessage = isError && error instanceof Error && 'response' in error
+    ? (error as any).response?.data?.detail || 'Failed to load player data.'
+    : isError ? 'Failed to load player data.' : null;
 
   if (isLoading) {
     return (
@@ -34,7 +38,15 @@ export default function ProfilePage() {
     return (
       <div style={styles.container}>
         <div style={styles.error}>
-          <p>Failed to load player data.</p>
+          <p style={{ fontWeight: 600, marginBottom: 8 }}>Failed to load player data.</p>
+          {errorMessage && (
+            <p style={{ fontSize: 13, color: '#666', marginBottom: 12 }}>{errorMessage}</p>
+          )}
+          {errorMessage?.includes('authentication') || errorMessage?.includes('token') ? (
+            <p style={{ fontSize: 12, color: '#b0a080' }}>
+              Please check your EGD API token in <code>backend/.env</code>
+            </p>
+          ) : null}
           <button onClick={() => navigate('/')} style={styles.backBtn}>Back to Search</button>
         </div>
       </div>

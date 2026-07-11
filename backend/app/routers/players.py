@@ -1,6 +1,6 @@
 """Player-related API routes."""
 from fastapi import APIRouter, HTTPException, Query
-from app.services.egd_client import egd_client
+from app.services.egd_client import egd_client, EGDAuthError, EGDAPIError
 
 router = APIRouter(prefix="/api", tags=["players"])
 
@@ -30,12 +30,22 @@ async def search_players(q: str = Query(..., min_length=1)):
                         "currentPage": 1,
                         "hasMorePages": False,
                     }
+            except EGDAuthError:
+                raise HTTPException(status_code=401, detail="EGD API authentication failed. Please check your API token.")
+            except EGDAPIError as e:
+                raise HTTPException(status_code=502, detail=str(e))
             except Exception:
                 pass
 
         # Fall back to name search
         result = await egd_client.search_players(q)
         return result
+    except EGDAuthError:
+        raise HTTPException(status_code=401, detail="EGD API authentication failed. Please check your API token in backend/.env")
+    except EGDAPIError as e:
+        raise HTTPException(status_code=502, detail=str(e))
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -74,6 +84,10 @@ async def get_player(pin: int):
             **player,
             "rating_history": rating_history,
         }
+    except EGDAuthError:
+        raise HTTPException(status_code=401, detail="EGD API authentication failed. Please check your API token in backend/.env")
+    except EGDAPIError as e:
+        raise HTTPException(status_code=502, detail=str(e))
     except HTTPException:
         raise
     except Exception as e:
@@ -90,6 +104,10 @@ async def get_player_games(
     try:
         result = await egd_client.get_player_games(pin, page, limit)
         return result
+    except EGDAuthError:
+        raise HTTPException(status_code=401, detail="EGD API authentication failed. Please check your API token.")
+    except EGDAPIError as e:
+        raise HTTPException(status_code=502, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -102,5 +120,9 @@ async def get_player_tournaments(pin: int):
         # Sort by date
         tournaments.sort(key=lambda x: x.get("date", "") or "")
         return {"data": tournaments, "total": len(tournaments)}
+    except EGDAuthError:
+        raise HTTPException(status_code=401, detail="EGD API authentication failed. Please check your API token.")
+    except EGDAPIError as e:
+        raise HTTPException(status_code=502, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

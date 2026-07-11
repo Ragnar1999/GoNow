@@ -1,0 +1,1 @@
+React 19 + ReactDOM, Vite 8 as dev server/bundler, TypeScript ~6.0, react-router-dom 7 for routing, @tanstack/react-query 5 for server-state caching, axios for HTTP, recharts for rating-history charts, oxlint for linting.

@@ -1,0 +1,1 @@
+Development: `pnpm dev` runs Vite against `index.html`; build: `pnpm build` first runs `tsc -b` (project references across `tsconfig.app.json` / `tsconfig.node.json`) then `vite build`; preview: `pnpm preview`. The API client is hard-coded to `http://localhost:8000/api`, so the backend must be running on port 8000 during development.

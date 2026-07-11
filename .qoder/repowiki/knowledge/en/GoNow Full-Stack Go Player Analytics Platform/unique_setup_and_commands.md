@@ -1,0 +1,1 @@
+`make install` bootstraps both sides (Python venv + npm), `make dev` starts backend (:8000) and frontend (:5173) in separate Windows cmd windows, and `make stop` kills them via taskkill — no Docker or process manager involved.

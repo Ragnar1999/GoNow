@@ -1,1 +1,0 @@
-Git ignore rules for the GoNow project, excluding Python/Node build artifacts, environment files, IDE and OS metadata, generated data, and logs.

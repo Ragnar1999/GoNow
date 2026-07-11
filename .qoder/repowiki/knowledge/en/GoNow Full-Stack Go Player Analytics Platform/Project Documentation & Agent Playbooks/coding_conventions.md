@@ -1,0 +1,2 @@
+- External API references (EGD GraphQL, OpenRouter) are documented with full example queries/responses and typed field tables derived from schema introspection rather than hand-written prose.
+- Design decisions are recorded alongside rejected alternatives with explicit pros/cons and a verdict, so future maintainers understand why a simpler approach was chosen.

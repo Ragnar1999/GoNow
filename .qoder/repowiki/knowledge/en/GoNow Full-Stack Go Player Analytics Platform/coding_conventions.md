@@ -1,0 +1,2 @@
+- All external API access (EGD GraphQL, OpenRouter) is confined to the backend; the frontend communicates only through typed Axios calls to `/api/*`.
+- Environment configuration is centralized in `backend/.env` and consumed by the backend at startup — nothing is baked into the frontend build.

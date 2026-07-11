@@ -8,6 +8,16 @@ from typing import Any
 EGD_ENDPOINT = "https://europeangodatabase.eu/api/v2026.02/graphql"
 
 
+class EGDAuthError(Exception):
+    """Raised when EGD API authentication fails."""
+    pass
+
+
+class EGDAPIError(Exception):
+    """Raised when EGD API returns an error."""
+    pass
+
+
 class EGDClient:
     def __init__(self):
         self._token = os.environ.get("EGD_API_TOKEN", "")
@@ -30,16 +40,35 @@ class EGDClient:
         if variables:
             payload["variables"] = variables
 
-        async with httpx.AsyncClient(timeout=30) as client:
-            resp = await client.post(EGD_ENDPOINT, headers=self._headers, json=payload)
-            resp.raise_for_status()
-            result = resp.json()
+        try:
+            async with httpx.AsyncClient(timeout=30, follow_redirects=False) as client:
+                resp = await client.post(EGD_ENDPOINT, headers=self._headers, json=payload)
+                
+                # Check for authentication errors
+                if resp.status_code in (401, 403):
+                    raise EGDAuthError("EGD API authentication failed. Please check your API token in backend/.env")
+                
+                # Check for redirect (token expired/invalid)
+                if resp.status_code in (301, 302, 307, 308):
+                    location = resp.headers.get("location", "")
+                    if "login" in location.lower():
+                        raise EGDAuthError("EGD API token is expired or invalid. Please get a new token from europeangodatabase.eu")
+                
+                resp.raise_for_status()
+                result = resp.json()
 
-        if "errors" in result:
-            raise ValueError(f"GraphQL errors: {result['errors']}")
+            if "errors" in result:
+                error_msg = result["errors"][0].get("message", str(result["errors"]))
+                raise EGDAPIError(f"EGD API error: {error_msg}")
 
-        self._cache[cache_key] = (time.time(), result)
-        return result
+            self._cache[cache_key] = (time.time(), result)
+            return result
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code in (401, 403):
+                raise EGDAuthError("EGD API authentication failed. Please check your API token in backend/.env")
+            raise EGDAPIError(f"EGD API request failed: {e.response.status_code}")
+        except httpx.RequestError as e:
+            raise EGDAPIError(f"EGD API unavailable: {str(e)}")
 
     async def search_players(self, search: str, limit: int = 20) -> dict:
         """Search players by name (typo-tolerant)."""

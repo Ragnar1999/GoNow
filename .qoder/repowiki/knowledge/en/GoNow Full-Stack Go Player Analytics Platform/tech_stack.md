@@ -1,0 +1,1 @@
+Python 3.14 + FastAPI/httpx for the backend, React 19 + TypeScript + Vite for the client, OpenRouter (gemini-2.0-flash by default) for agentic tool calling, and the EGD GraphQL API as the sole data source.

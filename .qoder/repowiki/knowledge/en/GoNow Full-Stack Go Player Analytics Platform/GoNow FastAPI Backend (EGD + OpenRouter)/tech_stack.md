@@ -1,0 +1,1 @@
+Python FastAPI ≥0.115 with Uvicorn ASGI server, Pydantic v2 for schema validation, httpx async HTTP client for both the EGD GraphQL API and OpenRouter's `/chat/completions` proxy, python-dotenv for config, and an in-process dict-based TTL cache (no Redis).

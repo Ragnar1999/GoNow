@@ -1,8 +1,0 @@
-schema_version: 1
-module_path: ""
-title: Repository Ignore Rules
-scope:
-    - .gitignore
-source_files: []
-depends_on: []
-related_to: []

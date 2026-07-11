@@ -1,0 +1,6 @@
+Layered FastAPI application under `app/` with three horizontal layers:
+- `routers/` — thin request handlers that declare routes via `APIRouter(prefix="/api", tags=[...])`, validate query/path params, and delegate to services.
+- `services/` — domain logic and external integrations: `egd_client.py` is a singleton `EGDClient` wrapping the EGD GraphQL endpoint (`europeangodatabase.eu/api/v2026.02/graphql`) with an in-process TTL cache keyed on `(query, variables)`; `chat_agent.py` implements the OpenRouter agentic loop (send message → execute tool calls via `execute_tool` from `egd_tools.py` → feed results back, bounded by `CHAT_MAX_ITERATIONS`); `egd_client.py` also exposes helper methods like `get_player_by_name_or_pin` used by routers.
+- `models/` — Pydantic v2 schemas (`player.py`, `chat.py`) defining request/response shapes.
+
+`main.py` is the single entry point: loads `.env` from the repo root, mounts CORS for localhost:5173/3000, includes both routers, and exposes `/` and `/health`. Dependency direction is strictly routers → services → models; there is no ORM or database layer — all persistence lives in the EGD service and the in-memory cache.

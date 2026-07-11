@@ -1,0 +1,1 @@
+Markdown documentation covering GoNow's architecture, the agentic chat system design, developer/agent instructions, and the EGD GraphQL API reference.

@@ -1,0 +1,4 @@
+- API surface is centralized in `src/api/client.ts`: every HTTP call goes through a named async function that wraps an axios request and returns the `.data` payload, while all response shapes are declared as exported TypeScript interfaces in the same file.
+- Cross-cutting concerns (routing, query cache) are provided once at the app root in `App.tsx` via context providers (`BrowserRouter`, `QueryClientProvider`) rather than per-component setup.
+- Local persistent state is encapsulated in a custom hook (`useFavorites`) that initializes from `localStorage` in the `useState` initializer and syncs back via `useEffect`, exposing pure add/remove/toggle/isFavorite methods to consumers.
+- Inline styles use a `Record<string, React.CSSProperties>` object defined at the bottom of each component file, with string-literal type assertions (`'flexDirection' as const`) for CSS flexbox values.

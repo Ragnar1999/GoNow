@@ -1,0 +1,5 @@
+- Routers are defined as `APIRouter(prefix="/api", tags=[...])` instances mounted via `app.include_router`, keeping route definitions separate from the app factory.
+- External HTTP calls use `httpx.AsyncClient` with explicit timeouts (30s for EGD, 60s for OpenRouter) and `resp.raise_for_status()` before parsing JSON.
+- Service-layer functions wrap their body in `try/except Exception as e:` and re-raise as `HTTPException(status_code=500, detail=str(e))`, while letting `HTTPException` propagate unchanged.
+- Configuration values are read from `os.environ.get(...)` with defaults rather than passed as parameters, loaded once at import time via `python-dotenv`.
+- Pydantic models use camelCase field names matching the upstream EGD/OpenRouter payloads instead of Pythonic snake_case.

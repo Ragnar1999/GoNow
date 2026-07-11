@@ -1,0 +1,1 @@
+Client-side React application for searching Go players, viewing profiles with rating history charts, managing favorites, and chatting with an EGD-powered assistant.

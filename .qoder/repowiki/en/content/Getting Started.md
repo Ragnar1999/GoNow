@@ -4,556 +4,211 @@
 **Referenced Files in This Document**
 - [README.md](file://README.md)
 - [Makefile](file://Makefile)
-- [.gitignore](file://.gitignore)
 - [backend/requirements.txt](file://backend/requirements.txt)
 - [frontend/package.json](file://frontend/package.json)
 - [backend/app/main.py](file://backend/app/main.py)
-- [backend/app/routers/players.py](file://backend/app/routers/players.py)
-- [backend/app/models/player.py](file://backend/app/models/player.py)
-- [backend/app/services/chat_agent.py](file://backend/app/services/chat_agent.py)
-- [frontend/src/App.tsx](file://frontend/src/App.tsx)
-- [frontend/src/api/client.ts](file://frontend/src/api/client.ts)
-- [frontend/vite.config.ts](file://frontend/vite.config.ts)
+- [backend/app/services/egd_client.py](file://backend/app/services/egd_client.py)
+- [docs/ARCHITECTURE.md](file://docs/ARCHITECTURE.md)
+- [docs/EGD_API.md](file://docs/EGD_API.md)
 </cite>
-
-## Update Summary
-**Changes Made**
-- Updated installation instructions to use new Makefile-based build system with standardized commands
-- Modified virtual environment setup to use backend/.venv path consistently
-- Enhanced configuration documentation with comprehensive .env variable setup including CHAT_MODEL options and CHAT_MAX_ITERATIONS settings
-- Modernized development workflow with Make targets replacing manual setup processes
-- Updated all command examples to use Makefile commands for consistency
-- Added detailed environment variable documentation with model options and configuration defaults
-- Improved troubleshooting section with Makefile-specific guidance and common setup issues
 
 ## Table of Contents
 1. [Introduction](#introduction)
-2. [Project Structure](#project-structure)
-3. [Core Components](#core-components)
-4. [Architecture Overview](#architecture-overview)
-5. [Environment Setup and Installation](#environment-setup-and-installation)
-6. [Development Workflow](#development-workflow)
-7. [First API Endpoint Tutorial](#first-api-endpoint-tutorial)
-8. [Testing Setup](#testing-setup)
-9. [Common Development Patterns](#common-development-patterns)
-10. [Troubleshooting Guide](#troubleshooting-guide)
-11. [Conclusion](#conclusion)
-12. [Appendices](#appendices)
+2. [Prerequisites](#prerequisites)
+3. [Environment Setup](#environment-setup)
+4. [Installation](#installation)
+5. [Development Commands](#development-commands)
+6. [Project Structure Overview](#project-structure-overview)
+7. [Quick Start Examples](#quick-start-examples)
+8. [Troubleshooting Guide](#troubleshooting-guide)
+9. [Conclusion](#conclusion)
 
 ## Introduction
-This guide helps you set up and run the GoNow full-stack web application, configure your development environment, and create your first API endpoint. The application consists of a FastAPI backend that proxies European Go Database (EGD) API calls and a React frontend for player search, profile viewing, and AI-powered chat assistance. It covers Python and Node.js setup, virtual environments, dependency management, a step-by-step tutorial for building endpoints with service-layer logic and data models, common development workflow patterns, and testing setup for both backend and frontend. The content is designed to be beginner-friendly while providing enough technical depth for experienced developers to quickly understand the full-stack structure and start contributing.
+GoNow is a full-stack web application for tracking European Go players’ progress over time. It provides player search, detailed profiles, rating evolution charts, favorites management, and an agentic AI chat assistant that can look up real player data on the fly using the European Go Database (EGD) GraphQL API. The frontend runs with React and Vite, while the backend uses Python FastAPI to proxy EGD calls and orchestrate tool-calling via OpenRouter.
 
-## Project Structure
-The repository follows a conventional full-stack layout with separate backend and frontend directories:
+## Prerequisites
+Ensure your development machine meets these requirements before proceeding:
+- Python 3.14+
+- Node.js 18+ and npm
+- GNU Make (comes with Git Bash on Windows)
+- An EGD API token (Bearer token) configured in the backend environment file
 
-```mermaid
-graph TB
-A["Repository Root"] --> B["backend/"]
-A --> C["frontend/"]
-A --> D["scripts/"]
-A --> E["docs/"]
-B --> F["app/"]
-F --> G["models/"]
-F --> H["routers/"]
-F --> I["services/"]
-F --> J["main.py"]
-C --> K["src/"]
-K --> L["components/"]
-K --> M["pages/"]
-K --> N["api/"]
-K --> O["hooks/"]
-K --> P["App.tsx"]
-B --> Q["requirements.txt"]
-C --> R["package.json"]
-C --> S["vite.config.ts"]
-```
-
-**Backend Components:**
-- `backend/app`: FastAPI application package containing core modules
-  - `models/`: Pydantic data models and schemas
-  - `routers/`: HTTP route definitions and API endpoints
-  - `services/`: Business logic implementations and external API clients
-- `backend/requirements.txt`: Python dependencies
-- `backend/.venv`: Virtual environment (created by Makefile)
-
-**Frontend Components:**
-- `frontend/src`: React application source code
-  - `components/`: Reusable UI components (Navbar, ChatWidget)
-  - `pages/`: Page components (SearchPage, ProfilePage, FavoritesPage)
-  - `api/`: Axios API client and TypeScript interfaces
-  - `hooks/`: Custom React hooks (useFavorites)
-- `frontend/package.json`: Node.js dependencies and scripts
-- `frontend/vite.config.ts`: Vite build configuration
-
-**Shared Resources:**
-- `scripts/`: API exploration utilities and helper scripts
-- `docs/`: Architecture and API documentation
-- `.gitignore`: Excludes local artifacts, environment files, and IDE folders
+These prerequisites are documented in the project’s main README.
 
 **Section sources**
-- [README.md:57-90](file://README.md#L57-L90)
-- [.gitignore:1-40](file://.gitignore#L1-L40)
-
-## Core Components
-The application follows a clear separation of concerns across layers:
-
-**Backend Layer:**
-- **Routers**: Define HTTP endpoints and map requests to handlers
-- **Services**: Encapsulate business logic used by routers
-- **Models**: Represent data structures and validation rules using Pydantic
-
-**Frontend Layer:**
-- **Components**: Reusable UI elements and page layouts
-- **Pages**: Route-specific components with business logic
-- **API Client**: Centralized HTTP communication with backend
-- **Hooks**: Custom React hooks for state management and side effects
-
-These components interact through clear boundaries: routers accept requests, call services, and return responses using model-defined shapes. The frontend communicates with the backend through a typed API client.
-
-## Architecture Overview
-A typical request flow in the full-stack application:
-
-```mermaid
-sequenceDiagram
-participant User as "User"
-participant Frontend as "React Frontend ( : 5173)"
-participant Backend as "FastAPI Backend ( : 8000)"
-participant EGD as "EGD GraphQL API"
-participant OpenRouter as "OpenRouter API"
-User->>Frontend : "Search Player"
-Frontend->>Backend : "GET /api/search?q=name"
-Backend->>EGD : "GraphQL Query"
-EGD-->>Backend : "Player Data"
-Backend-->>Frontend : "JSON Response"
-Frontend-->>User : "Display Results"
-Note over Frontend,Backend : "CORS enabled for localhost : 5173"
-User->>Frontend : "Send Chat Message"
-Frontend->>Backend : "POST /api/chat"
-Backend->>OpenRouter : "Chat Completion with Tool Calling"
-OpenRouter-->>Backend : "AI Response with Tool Calls"
-Backend-->>Frontend : "Chat Reply"
-Frontend-->>User : "Display AI Response"
-```
-
-**Updated** The architecture now includes both backend and frontend servers with CORS configuration for cross-origin requests and enhanced chat functionality with tool calling capabilities.
-
-**Diagram sources**
-- [backend/app/main.py:20-27](file://backend/app/main.py#L20-L27)
-- [frontend/src/api/client.ts:3-5](file://frontend/src/api/client.ts#L3-L5)
-
-## Environment Setup and Installation
-
-### Prerequisites
-Before starting, ensure you have the following installed:
-- **Python 3.14+** for the backend
-- **Node.js 18+** and npm for the frontend
-- **GNU Make** (comes with Git Bash on Windows)
-- **Git** for version control
-
-### Quick Start with Makefile
-The easiest way to get started is using the provided Makefile commands:
-
-```bash
-# Install all dependencies (creates venv and installs npm packages)
-make install
-
-# Start both backend and frontend servers
-make dev
-
-# Or start them individually
-make dev-be  # Backend only
-make dev-fe  # Frontend only
-```
-
-### Manual Setup Process
-
-#### Backend Setup
-```bash
-cd backend
-python -m venv .venv
-# Windows: .venv\Scripts\activate
-# macOS/Linux: source .venv/bin/activate
-
-pip install -r requirements.txt
-
-# Create .env file with your EGD API token and optional AI configuration
-echo "EGD_TOKEN=your_token_here" > .env
-echo "OPENROUTER_API_KEY=your_openrouter_key_here" >> .env
-echo "CHAT_MODEL=google/gemini-2.0-flash-001" >> .env
-echo "CHAT_MAX_ITERATIONS=3" >> .env
-
-# Start the development server
-uvicorn app.main:app --reload
-```
-
-The backend will be available at [http://localhost:8000](http://localhost:8000) with API docs at [http://localhost:8000/docs](http://localhost:8000/docs).
-
-#### Frontend Setup
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-The frontend will be available at [http://localhost:5173](http://localhost:5173).
-
-**Section sources**
-- [README.md:92-137](file://README.md#L92-L137)
-- [Makefile:9-36](file://Makefile#L9-L36)
-- [backend/requirements.txt:1-6](file://backend/requirements.txt#L1-L6)
-- [frontend/package.json:6-11](file://frontend/package.json#L6-L11)
-
-## Development Workflow
-
-### Using Make Commands
-The Makefile provides convenient commands for common development tasks:
-
-| Command | Description |
-|---------|-------------|
-| `make help` | Show available commands |
-| `make install` | Install all dependencies |
-| `make install-be` | Install backend dependencies |
-| `make install-fe` | Install frontend dependencies |
-| `make dev` | Start both servers (Windows background processes) |
-| `make dev-be` | Start backend only |
-| `make dev-fe` | Start frontend only |
-| `make stop` | Kill all running servers |
-| `make build` | Build frontend for production |
-| `make clean` | Remove build artifacts and venv |
-
-### Development Server Configuration
-- **Backend**: Runs on port 8000 with auto-reload enabled
-- **Frontend**: Runs on port 5173 with hot module replacement
-- **CORS**: Configured to allow requests from localhost:5173 and localhost:3000
-
-### Environment Variables
-Create a `.env` file in the `backend/` directory:
-
-```env
-# Required for EGD API access
-EGD_TOKEN=your_egd_api_token_here
-
-# Optional: Enable AI chat functionality
-OPENROUTER_API_KEY=your_openrouter_api_key_here
-
-# AI Chat Configuration
-CHAT_MODEL=google/gemini-2.0-flash-001
-CHAT_MAX_ITERATIONS=3
-```
-
-**Updated** The backend automatically loads environment variables from `backend/.env` using python-dotenv. The virtual environment is now managed in `backend/.venv` when using the Makefile. Available CHAT_MODEL options include `google/gemini-2.0-flash-001` (default), `openai/gpt-4o-mini`, and `anthropic/claude-3.5-sonnet`.
-
-**Section sources**
-- [Makefile:1-54](file://Makefile#L1-L54)
-- [backend/app/main.py:8-10](file://backend/app/main.py#L8-L10)
-- [backend/app/main.py:20-27](file://backend/app/main.py#L20-L27)
-- [backend/app/services/chat_agent.py:10-11](file://backend/app/services/chat_agent.py#L10-L11)
-
-## First API Endpoint Tutorial
-
-### Goal: Create a Simple Search Endpoint
-We'll walk through creating a player search endpoint that demonstrates the full stack interaction.
-
-#### Step 1: Define Data Models
-Create or extend Pydantic models in `backend/app/models/`:
-
-```python
-# In backend/app/models/player.py
-class PlayerSummary(BaseModel):
-    pin: int
-    firstName: str
-    lastName: str
-    countryCode: str
-    grade: str
-    rating: Optional[int] = None
-```
-
-#### Step 2: Implement Service Logic
-Create or extend service functions in `backend/app/services/`:
-
-```python
-# In backend/app/services/egd_client.py
-async def search_players(query: str):
-    """Search players via EGD GraphQL API"""
-    # Implementation details...
-```
-
-#### Step 3: Register API Route
-Add the endpoint in `backend/app/routers/players.py`:
-
-```python
-@router.get("/search")
-async def search_players(q: str = Query(..., min_length=1)):
-    """Search players by name or PIN."""
-    result = await egd_client.search_players(q)
-    return result
-```
-
-#### Step 4: Mount Router in Application
-Ensure the router is included in `backend/app/main.py`:
-
-```python
-from app.routers import players
-app.include_router(players.router)
-```
-
-#### Step 5: Create Frontend API Client
-Define TypeScript interfaces and API functions in `frontend/src/api/client.ts`:
-
-```typescript
-export interface PlayerSummary {
-  pin: number;
-  firstName: string;
-  lastName: string;
-  // ... other fields
-}
-
-export async function searchPlayers(query: string): Promise<SearchResponse> {
-  const res = await api.get<SearchResponse>('/search', { params: { q: query } });
-  return res.data;
-}
-```
-
-#### Step 6: Use in Frontend Component
-Import and use the API function in your React component:
-
-```typescript
-import { searchPlayers } from './api/client';
-
-// In your component
-const handleSearch = async (query: string) => {
-  const results = await searchPlayers(query);
-  // Handle results...
-};
-```
-
-#### Step 7: Test the Endpoint
-- Backend: Visit http://localhost:8000/docs to test via Swagger UI
-- Frontend: Use the search functionality in the browser at http://localhost:5173
-
-```mermaid
-flowchart TD
-Start(["Start"]) --> DefineModel["Define Pydantic model in 'models'"]
-DefineModel --> ImplementService["Implement service logic in 'services'"]
-ImplementService --> AddRoute["Add route in 'routers'"]
-AddRoute --> MountRouter["Mount router in main.py"]
-MountRouter --> CreateAPIClient["Create TypeScript API client"]
-CreateAPIClient --> UseInComponent["Use in React component"]
-UseInComponent --> TestEndpoint["Test both backend and frontend"]
-TestEndpoint --> End(["Done"])
-```
-
-**Diagram sources**
-- [backend/app/models/player.py:6-16](file://backend/app/models/player.py#L6-L16)
-- [backend/app/routers/players.py:8-40](file://backend/app/routers/players.py#L8-L40)
-- [frontend/src/api/client.ts:59-62](file://frontend/src/api/client.ts#L59-L62)
-
-**Section sources**
-- [backend/app/models/player.py:1-60](file://backend/app/models/player.py#L1-L60)
-- [backend/app/routers/players.py:1-107](file://backend/app/routers/players.py#L1-L107)
-- [frontend/src/api/client.ts:1-86](file://frontend/src/api/client.ts#L1-L86)
-
-## Testing Setup
-
-### Backend Testing with pytest
-Install testing dependencies and create test files:
-
-```bash
-# Install testing dependencies
-pip install pytest pytest-asyncio httpx
-
-# Create tests directory structure
-mkdir tests
-touch tests/__init__.py
-touch tests/test_players.py
-```
-
-Example test structure:
-```python
-# tests/test_players.py
-import pytest
-from fastapi.testclient import TestClient
-从 app.main import app
-
-client = TestClient(app)
-
-def test_search_endpoint():
-    response = client.get("/api/search?q=test")
-    assert response.status_code == 200
-    assert "data" in response.json()
-```
-
-### Frontend Testing with Vitest
-The frontend uses Vitest for testing. Install and configure:
-
-```bash
-# Install testing dependencies
-npm install --save-dev vitest @testing-library/react @testing-library/jest-dom
-
-# Add test script to package.json
-# "test": "vitest"
-```
-
-Example test structure:
-```typescript
-// src/components/__tests__/Navbar.test.tsx
-import { render, screen } from '@testing-library/react';
-import Navbar from '../Navbar';
-
-describe('Navbar', () => {
-  it('renders navigation links', () => {
-    render(<Navbar />);
-    expect(screen.getByText('Search')).toBeInTheDocument();
-    expect(screen.getByText('Favorites')).toBeInTheDocument();
-  });
-});
-```
-
-### Running Tests
-```bash
-# Backend tests
-pytest tests/
-
-# Frontend tests
-npm test
-```
-
-**Section sources**
-- [backend/app/main.py:14-18](file://backend/app/main.py#L14-L18)
-
-## Common Development Patterns
-
-### Feature Branches and Git Workflow
-- Create feature branches: `git checkout -b feature/new-player-search`
-- Keep commits small and focused
-- Use conventional commit messages
-- Pull request reviews before merging
-
-### Code Organization
-- **Backend**: Follow MVC pattern with clear separation between routers, services, and models
-- **Frontend**: Organize by feature with co-located components, hooks, and API calls
-- **Configuration**: Keep environment variables in `.env` files (never committed)
-
-### Error Handling
-- Use consistent error responses across all endpoints
-- Implement proper logging for debugging
-- Handle network errors gracefully in the frontend
-
-### Performance Considerations
-- Use async/await for database and external API calls
-- Implement caching strategies where appropriate
-- Optimize bundle size for frontend builds
-
-## Troubleshooting Guide
-
-### Common Issues and Solutions
-
-**Port Conflicts**
-- Backend: Change port in Makefile or uvicorn command if 8000 is in use
-- Frontend: Vite automatically finds available ports if 5173 is occupied
-
-**CORS Errors**
-- Ensure frontend is running on allowed origins (localhost:5173 or localhost:3000)
-- Check CORS configuration in `backend/app/main.py`
-
-**Missing Dependencies**
-- Backend: `make install-be` or `pip install -r backend/requirements.txt`
-- Frontend: `make install-fe` or `npm install` in frontend directory
-
-**Environment Variables**
-- Verify `.env` file exists in `backend/` directory
-- Ensure `EGD_TOKEN` is properly configured
-- For AI chat features, verify `OPENROUTER_API_KEY` is set
-- Restart backend server after changing environment variables
-
-**Virtual Environment Issues**
-- Backend venv location: `backend/.venv`
-- Activate venv: `backend/.venv/Scripts/activate` (Windows) or `source backend/.venv/bin/activate` (macOS/Linux)
-- Recreate venv: `make clean && make install-be`
-
-**Import Errors**
-- Confirm module paths align with project structure
-- Check that virtual environment is activated for backend development
-- Verify TypeScript compilation for frontend changes
-
-**Build Issues**
-- Clean build artifacts: `make clean`
-- Reinstall dependencies: `make install`
-- Clear npm cache if needed: `npm cache clean --force`
-
-**Development Server Issues**
-- Stop all servers: `make stop`
-- Restart individual servers: `make dev-be` or `make dev-fe`
-- Check logs in terminal windows for error details
-
-**Makefile Commands Not Working**
-- Ensure you're in the repository root directory
-- On Windows, use Git Bash or PowerShell with Make support
-- Alternative: Run commands directly from the README.md
-
-**AI Chat Configuration Issues**
-- Verify `OPENROUTER_API_KEY` is set in `backend/.env`
-- Check `CHAT_MODEL` value matches available OpenRouter models
-- Adjust `CHAT_MAX_ITERATIONS` if experiencing timeout issues
-- Test chat endpoint at `/api/chat` via Swagger UI
-
-**Section sources**
-- [backend/app/main.py:20-27](file://backend/app/main.py#L20-L27)
-- [Makefile:38-53](file://Makefile#L38-L53)
-- [backend/app/services/chat_agent.py:42-48](file://backend/app/services/chat_agent.py#L42-L48)
-
-## Conclusion
-You now have the essentials to set up and develop the GoNow full-stack application. With both backend and frontend environments configured, you can create new features, implement API endpoints, and build user interfaces. The modular architecture separates concerns across routers, services, models, components, and pages, making it easy to maintain and extend. Remember to follow the established patterns for code organization, error handling, and testing to keep the codebase clean and maintainable as it grows.
-
-## Appendices
-
-### Quick Reference Checklist
-- ✅ Python 3.14+ and Node.js 18+ installed
-- ✅ GNU Make available (comes with Git Bash on Windows)
-- ✅ Virtual environment created and activated (backend/.venv)
-- ✅ All dependencies installed (`make install`)
-- ✅ Environment variables configured (`.env` file in backend/)
-- ✅ Both development servers running
-- ✅ First API endpoint created and tested
-- ✅ Basic tests written and passing
-
-### Useful Commands
-```bash
-# Development
-make dev          # Start both servers
-make dev-be       # Backend only
-make dev-fe       # Frontend only
-
-# Building
-make build        # Production build
-npm run build     # Frontend build only
-
-# Maintenance
-make clean        # Clean artifacts
-make stop         # Stop servers
-```
-
-### API Endpoints Reference
-- `GET /api/search?q=query` - Search players
-- `GET /api/player/{pin}` - Get player details
-- `GET /api/player/{pin}/tournaments` - Get tournament history
-- `POST /api/chat` - Send chat message
-- `GET /docs` - Interactive API documentation
-
-### Environment Variables Reference
-| Variable | Description | Default | Required |
-|----------|-------------|---------|----------|
-| `EGD_TOKEN` | EGD GraphQL API bearer token | - | Yes |
-| `OPENROUTER_API_KEY` | OpenRouter API key for AI chat | - | No |
-| `CHAT_MODEL` | OpenRouter model ID for chat | `google/gemini-2.0-flash-001` | No |
-| `CHAT_MAX_ITERATIONS` | Max tool-calling iterations per chat turn | `3` | No |
-
-**Available CHAT_MODEL Options:**
-- `google/gemini-2.0-flash-001` — Fast, cheap, supports tool calling (default)
-- `openai/gpt-4o-mini` — Good balance of speed and quality
-- `anthropic/claude-3.5-sonnet` — Higher quality, slower/more expensive
+- [README.md:94-99](file://README.md#L94-L99)
+
+## Environment Setup
+You must configure the backend environment variables before running the application. All configuration lives in `backend/.env`.
+
+Required and optional variables:
+- EGD_API_TOKEN: Bearer token for the EGD GraphQL API (required)
+- OPENROUTER_API_KEY: Key for OpenRouter (optional; chat disabled if empty)
+- CHAT_MODEL: Model ID for chat (default provided by the app)
+- CHAT_MAX_ITERATIONS: Max tool-calling iterations per chat turn (default provided by the app)
+
+Where these values come from:
+- EGD API endpoint and authentication details are defined in the EGD API documentation.
+- The backend loads `.env` at startup and reads the token from the environment.
+
+Important notes:
+- The backend proxies all EGD API calls to keep the token server-side.
+- The frontend communicates with the backend over HTTP; CORS is configured to allow local development origins.
 
 **Section sources**
 - [README.md:139-154](file://README.md#L139-L154)
-- [backend/app/routers/players.py:8-106](file://backend/app/routers/players.py#L8-L106)
-- [backend/app/services/chat_agent.py:10-11](file://backend/app/services/chat_agent.py#L10-L11)
+- [docs/EGD_API.md:1-22](file://docs/EGD_API.md#L1-L22)
+- [backend/app/main.py:8-10](file://backend/app/main.py#L8-L10)
+- [backend/app/main.py:20-27](file://backend/app/main.py#L20-L27)
+- [backend/app/services/egd_client.py:12-17](file://backend/app/services/egd_client.py#L12-L17)
+
+## Installation
+Choose either the Makefile-based setup or manual setup.
+
+### Using the Makefile (recommended)
+Run the following commands from the repository root:
+- make install: Create a Python virtual environment and install backend dependencies, then install frontend npm dependencies
+- make dev: Start both backend (:8000) and frontend (:5173) servers
+- make stop: Kill both servers
+
+The Makefile orchestrates creating the venv, installing dependencies, and launching servers in separate windows on Windows.
+
+**Section sources**
+- [README.md:101-122](file://README.md#L101-L122)
+- [Makefile:10-21](file://Makefile#L10-L21)
+- [Makefile:23-36](file://Makefile#L23-L36)
+- [Makefile:39-43](file://Makefile#L39-L43)
+
+### Manual Setup (without Make)
+Backend:
+- Create a virtual environment inside the backend directory
+- Install backend dependencies from requirements.txt
+- Start the FastAPI server with Uvicorn on port 8000
+
+Frontend:
+- In a separate terminal, navigate to the frontend directory
+- Install npm dependencies
+- Start the Vite development server
+
+This approach mirrors what the Makefile does under the hood.
+
+**Section sources**
+- [README.md:124-137](file://README.md#L124-L137)
+- [backend/requirements.txt:1-6](file://backend/requirements.txt#L1-L6)
+- [frontend/package.json:6-11](file://frontend/package.json#L6-L11)
+
+## Development Commands
+All available commands are exposed via the Makefile. Use them to manage installation, run development servers, build, and clean artifacts.
+
+- make help: Show all available commands
+- make install: Install backend (venv) + frontend (npm) dependencies
+- make install-be: Create venv and install backend dependencies
+- make install-fe: Install frontend npm dependencies
+- make dev: Start both BE + FE in separate windows
+- make dev-be: Start backend only (foreground)
+- make dev-fe: Start frontend only (foreground)
+- make stop: Kill all GoNow dev servers
+- make build: Build frontend for production
+- make clean: Remove venv, node_modules, dist
+
+These commands are designed to streamline local development across both layers.
+
+**Section sources**
+- [README.md:109-122](file://README.md#L109-L122)
+- [Makefile:4-7](file://Makefile#L4-L7)
+- [Makefile:10-21](file://Makefile#L10-L21)
+- [Makefile:23-36](file://Makefile#L23-L36)
+- [Makefile:39-43](file://Makefile#L39-L43)
+- [Makefile:46-53](file://Makefile#L46-L53)
+
+## Project Structure Overview
+At a high level:
+- Backend (FastAPI):
+  - Entry point and middleware configuration
+  - Routers for player endpoints and chat
+  - Services for EGD client and chat agent
+  - Pydantic models for requests/responses
+- Frontend (React + Vite):
+  - API client and TypeScript types
+  - Components, pages, hooks, and theme styles
+- Scripts and docs for exploration and architecture references
+
+The architecture diagram shows how the frontend talks to the backend, which proxies EGD GraphQL calls and optionally integrates with OpenRouter for agentic chat.
+
+```mermaid
+graph TB
+FE["Frontend<br/>React + Vite :5173"] --> BE["Backend<br/>FastAPI :8000"]
+BE --> EGD["EGD GraphQL API<br/>europeangodatabase.eu"]
+BE --> OR["OpenRouter API<br/>Chat Agent"]
+```
+
+**Diagram sources**
+- [docs/ARCHITECTURE.md:7-33](file://docs/ARCHITECTURE.md#L7-L33)
+- [README.md:24-53](file://README.md#L24-L53)
+
+**Section sources**
+- [README.md:57-90](file://README.md#L57-L90)
+- [docs/ARCHITECTURE.md:43-81](file://docs/ARCHITECTURE.md#L43-L81)
+
+## Quick Start Examples
+After completing environment setup and installation:
+
+- Start both servers:
+  - make dev
+  - Or manually start backend and frontend as described above
+
+- Access the application:
+  - Frontend: http://localhost:5173
+  - Backend API docs: http://localhost:8000/docs
+  - Health check: http://localhost:8000/health
+
+- Try core features:
+  - Player Search: Use the search page to find players by name or PIN
+  - Player Profiles: View detailed info, grade/rating, and tournament history
+  - Favorites: Save favorite players (stored locally in browser)
+  - Agentic Chat: Ask questions about players; the chat assistant may call EGD tools to fetch live data
+
+If you need to stop the servers:
+- make stop
+
+**Section sources**
+- [README.md:101-107](file://README.md#L101-L107)
+- [README.md:194-203](file://README.md#L194-L203)
+- [backend/app/main.py:34-41](file://backend/app/main.py#L34-L41)
+
+## Troubleshooting Guide
+Common setup issues and resolutions:
+
+- Missing EGD API token:
+  - Ensure EGD_API_TOKEN is set in backend/.env
+  - The backend reads this variable at startup and includes it in requests to EGD
+
+- Port conflicts:
+  - Backend defaults to port 8000; frontend defaults to port 5173
+  - If ports are in use, stop existing processes or adjust startup commands
+
+- CORS errors from the frontend:
+  - The backend allows localhost:5173 and localhost:3000 by default
+  - Ensure the frontend is served from one of these origins during development
+
+- Dependencies not installed:
+  - Re-run make install or perform manual setup steps for backend and frontend
+
+- Stale build artifacts:
+  - Run make clean to remove venv, node_modules, and dist directories, then reinstall
+
+- Chat not working:
+  - Set OPENROUTER_API_KEY in backend/.env
+  - Verify CHAT_MODEL and CHAT_MAX_ITERATIONS are configured as needed
+
+For additional context on the EGD API and authentication, refer to the EGD API reference.
+
+**Section sources**
+- [backend/app/main.py:20-27](file://backend/app/main.py#L20-L27)
+- [backend/app/services/egd_client.py:12-17](file://backend/app/services/egd_client.py#L12-L17)
+- [docs/EGD_API.md:1-22](file://docs/EGD_API.md#L1-L22)
+- [Makefile:46-53](file://Makefile#L46-L53)
+- [README.md:139-154](file://README.md#L139-L154)
+
+## Conclusion
+You now have everything needed to set up, install, and run GoNow locally. Configure your EGD API token, install dependencies via the Makefile or manually, and start the development servers. Explore player search, profiles, favorites, and the agentic chat assistant. For deeper insights into architecture and design decisions, consult the architecture and agent design documents.
